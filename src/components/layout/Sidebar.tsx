@@ -1,0 +1,101 @@
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import {
+  LayoutDashboard,
+  Package,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  FileSpreadsheet,
+  Bell,
+  Settings,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+
+const navigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Stoc Produse', href: '/products', icon: Package },
+  { name: 'Intrări', href: '/entries', icon: ArrowDownToLine },
+  { name: 'Ieșiri', href: '/exits', icon: ArrowUpFromLine },
+  { name: 'Rapoarte', href: '/reports', icon: FileSpreadsheet },
+  { name: 'Alerte', href: '/alerts', icon: Bell },
+];
+
+export function Sidebar() {
+  const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <aside
+      className={cn(
+        'fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out',
+        'bg-sidebar border-r border-sidebar-border',
+        collapsed ? 'w-20' : 'w-64'
+      )}
+    >
+      <div className="flex h-full flex-col">
+        {/* Logo */}
+        <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-fire shadow-glow">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            {!collapsed && (
+              <div className="animate-fade-in">
+                <h1 className="text-lg font-bold text-sidebar-foreground">PyroStock</h1>
+                <p className="text-xs text-sidebar-foreground/60">Management</p>
+              </div>
+            )}
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(!collapsed)}
+            className="h-8 w-8 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          {navigation.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  isActive
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                )}
+              >
+                <item.icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'animate-scale-in')} />
+                {!collapsed && <span className="animate-fade-in">{item.name}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="border-t border-sidebar-border p-3">
+          <Link
+            to="/settings"
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+              'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+            )}
+          >
+            <Settings className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Setări</span>}
+          </Link>
+        </div>
+      </div>
+    </aside>
+  );
+}
