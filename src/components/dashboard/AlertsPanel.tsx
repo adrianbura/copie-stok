@@ -1,24 +1,25 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockAlerts } from '@/data/mockData';
-import { AlertTriangle, ShieldAlert, Clock } from 'lucide-react';
+import { useUnacknowledgedAlerts, useAcknowledgeAlert } from '@/hooks/useAlerts';
+import { AlertTriangle, ShieldAlert, Clock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { AlertType } from '@/types';
 
-const alertIcons = {
+const alertIcons: Record<AlertType, typeof AlertTriangle> = {
   low_stock: AlertTriangle,
-  expiring_product: Clock,
-  certificate_expiry: ShieldAlert,
+  expiry: Clock,
+  compliance: ShieldAlert,
 };
 
-const alertLabels = {
+const alertLabels: Record<AlertType, string> = {
   low_stock: 'Stoc Scăzut',
-  expiring_product: 'Expirare Produs',
-  certificate_expiry: 'Expirare Certificat',
+  expiry: 'Expirare Produs',
+  compliance: 'Conformitate',
 };
 
 export function AlertsPanel() {
-  const activeAlerts = mockAlerts.filter((alert) => !alert.acknowledged);
+  const { data: activeAlerts, isLoading } = useUnacknowledgedAlerts();
 
   return (
     <Card className="col-span-full lg:col-span-1">
@@ -28,51 +29,57 @@ export function AlertsPanel() {
           Alerte Active
         </CardTitle>
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
-          {activeAlerts.length}
+          {activeAlerts?.length || 0}
         </span>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {activeAlerts.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Nu există alerte active
-            </p>
-          ) : (
-            activeAlerts.map((alert) => {
-              const Icon = alertIcons[alert.type];
-              return (
-                <div
-                  key={alert.id}
-                  className={cn(
-                    'flex items-start gap-3 p-3 rounded-lg border',
-                    alert.severity === 'critical'
-                      ? 'bg-destructive/5 border-destructive/30'
-                      : 'bg-warning/5 border-warning/30'
-                  )}
-                >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {!activeAlerts || activeAlerts.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nu există alerte active
+              </p>
+            ) : (
+              activeAlerts.map((alert) => {
+                const Icon = alertIcons[alert.type] || AlertTriangle;
+                return (
                   <div
+                    key={alert.id}
                     className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0',
+                      'flex items-start gap-3 p-3 rounded-lg border',
                       alert.severity === 'critical'
-                        ? 'bg-destructive/10 text-destructive'
-                        : 'bg-warning/10 text-warning'
+                        ? 'bg-destructive/5 border-destructive/30'
+                        : 'bg-warning/5 border-warning/30'
                     )}
                   >
-                    <Icon className="h-4 w-4" />
+                    <div
+                      className={cn(
+                        'flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0',
+                        alert.severity === 'critical'
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-warning/10 text-warning'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        {alertLabels[alert.type] || alert.type}
+                      </p>
+                      <p className="text-sm font-medium mt-0.5">{alert.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{alert.message}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      {alertLabels[alert.type]}
-                    </p>
-                    <p className="text-sm font-medium mt-0.5">{alert.productName}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{alert.message}</p>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-        {activeAlerts.length > 0 && (
+                );
+              })
+            )}
+          </div>
+        )}
+        {activeAlerts && activeAlerts.length > 0 && (
           <Button asChild variant="outline" className="w-full mt-4">
             <Link to="/alerts">Vezi toate alertele</Link>
           </Button>

@@ -45,10 +45,11 @@ export function ProductsTable({ products, onEdit, onDelete, onView }: ProductsTa
         </TableHeader>
         <TableBody>
           {products.map((product) => {
-            const isLowStock = product.quantity <= product.minStock;
-            const expirationDate = new Date(product.expirationDate);
-            const isExpiringSoon =
-              expirationDate <= new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+            const isLowStock = product.quantity <= product.min_stock;
+            const expiryDate = product.expiry_date ? new Date(product.expiry_date) : null;
+            const isExpiringSoon = expiryDate 
+              ? expiryDate <= new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)
+              : false;
 
             return (
               <TableRow
@@ -64,7 +65,7 @@ export function ProductsTable({ products, onEdit, onDelete, onView }: ProductsTa
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {product.supplier}
+                    {product.supplier || '-'}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -79,23 +80,25 @@ export function ProductsTable({ products, onEdit, onDelete, onView }: ProductsTa
                   >
                     {product.quantity}
                   </span>
-                  <span className="text-muted-foreground text-sm ml-1">
-                    {product.unit}
-                  </span>
+                  <span className="text-muted-foreground text-sm ml-1">buc</span>
                 </TableCell>
-                <TableCell className="font-mono text-sm">{product.location}</TableCell>
+                <TableCell className="font-mono text-sm">{product.location || '-'}</TableCell>
                 <TableCell>
-                  <span
-                    className={cn(
-                      'text-sm',
-                      isExpiringSoon ? 'text-warning font-medium' : ''
-                    )}
-                  >
-                    {format(expirationDate, 'd MMM yyyy', { locale: ro })}
-                  </span>
+                  {expiryDate ? (
+                    <span
+                      className={cn(
+                        'text-sm',
+                        isExpiringSoon ? 'text-warning font-medium' : ''
+                      )}
+                    >
+                      {format(expiryDate, 'd MMM yyyy', { locale: ro })}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right font-semibold">
-                  {product.price.toLocaleString()} RON
+                  {Number(product.unit_price).toLocaleString()} RON
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

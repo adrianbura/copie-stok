@@ -14,16 +14,224 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alerts: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          id: string
+          message: string
+          product_id: string | null
+          severity: string
+          title: string
+          type: Database["public"]["Enums"]["alert_type"]
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          product_id?: string | null
+          severity?: string
+          title: string
+          type: Database["public"]["Enums"]["alert_type"]
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          product_id?: string | null
+          severity?: string
+          title?: string
+          type?: Database["public"]["Enums"]["alert_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          batch_number: string | null
+          category: Database["public"]["Enums"]["pyro_category"]
+          certification: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          expiry_date: string | null
+          hazard_class: string | null
+          id: string
+          location: string | null
+          min_stock: number
+          name: string
+          net_weight: number | null
+          quantity: number
+          supplier: string | null
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          batch_number?: string | null
+          category: Database["public"]["Enums"]["pyro_category"]
+          certification?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          hazard_class?: string | null
+          id?: string
+          location?: string | null
+          min_stock?: number
+          name: string
+          net_weight?: number | null
+          quantity?: number
+          supplier?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          batch_number?: string | null
+          category?: Database["public"]["Enums"]["pyro_category"]
+          certification?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          hazard_class?: string | null
+          id?: string
+          location?: string | null
+          min_stock?: number
+          name?: string
+          net_weight?: number | null
+          quantity?: number
+          supplier?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          reference: string | null
+          type: Database["public"]["Enums"]["movement_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+          reference?: string | null
+          type: Database["public"]["Enums"]["movement_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reference?: string | null
+          type?: Database["public"]["Enums"]["movement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_authenticated: { Args: never; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      alert_type: "expiry" | "low_stock" | "compliance"
+      movement_type: "entry" | "exit"
+      pyro_category: "F1" | "F2" | "F3" | "F4" | "T1" | "T2"
+      user_role: "admin" | "operator" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +358,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      alert_type: ["expiry", "low_stock", "compliance"],
+      movement_type: ["entry", "exit"],
+      pyro_category: ["F1", "F2", "F3", "F4", "T1", "T2"],
+      user_role: ["admin", "operator", "viewer"],
+    },
   },
 } as const

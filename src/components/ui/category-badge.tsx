@@ -8,22 +8,22 @@ interface CategoryBadgeProps {
 }
 
 const categoryStyles: Record<PyroCategory, { bg: string; text: string; border: string }> = {
-  '1': {
+  'F1': {
     bg: 'bg-emerald-500/10',
     text: 'text-emerald-600',
     border: 'border-emerald-500/30',
   },
-  '2': {
+  'F2': {
     bg: 'bg-sky-500/10',
     text: 'text-sky-600',
     border: 'border-sky-500/30',
   },
-  '3': {
+  'F3': {
     bg: 'bg-amber-500/10',
     text: 'text-amber-600',
     border: 'border-amber-500/30',
   },
-  '4': {
+  'F4': {
     bg: 'bg-red-500/10',
     text: 'text-red-600',
     border: 'border-red-500/30',
@@ -50,7 +50,7 @@ export function CategoryBadge({ category, size = 'md', showDescription = false }
   const categoryInfo = CATEGORIES.find((c) => c.id === category);
   const styles = categoryStyles[category];
 
-  if (!categoryInfo) return null;
+  if (!categoryInfo || !styles) return null;
 
   return (
     <div className="flex items-center gap-2">

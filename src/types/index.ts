@@ -1,47 +1,74 @@
-export type PyroCategory = '1' | '2' | '3' | '4' | 'T1' | 'T2';
+export type PyroCategory = 'F1' | 'F2' | 'F3' | 'F4' | 'T1' | 'T2';
+
+export type UserRole = 'admin' | 'operator' | 'viewer';
+
+export type MovementType = 'entry' | 'exit';
+
+export type AlertType = 'expiry' | 'low_stock' | 'compliance';
 
 export interface Product {
   id: string;
-  name: string;
   code: string;
+  name: string;
   category: PyroCategory;
   quantity: number;
-  unit: string;
-  supplier: string;
-  batchNumber: string;
-  expirationDate: string;
-  certificateNumber: string;
-  certificateExpiry: string;
-  minStock: number;
-  location: string;
-  price: number;
-  createdAt: string;
-  updatedAt: string;
+  min_stock: number;
+  unit_price: number;
+  location: string | null;
+  supplier: string | null;
+  batch_number: string | null;
+  expiry_date: string | null;
+  net_weight: number | null;
+  hazard_class: string | null;
+  certification: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
 }
 
 export interface StockMovement {
   id: string;
-  productId: string;
-  productName: string;
-  productCode: string;
-  type: 'entry' | 'exit';
+  product_id: string;
+  type: MovementType;
   quantity: number;
+  reference: string | null;
+  notes: string | null;
   date: string;
-  reason: string;
-  operator: string;
-  notes: string;
-  documentNumber: string;
+  created_at: string;
+  created_by: string | null;
+  // Joined fields
+  product?: Product;
 }
 
 export interface Alert {
   id: string;
-  type: 'low_stock' | 'expiring_product' | 'certificate_expiry';
-  severity: 'warning' | 'critical';
+  product_id: string | null;
+  type: AlertType;
+  title: string;
   message: string;
-  productId: string;
-  productName: string;
-  date: string;
+  severity: string;
   acknowledged: boolean;
+  acknowledged_by: string | null;
+  acknowledged_at: string | null;
+  created_at: string;
+  // Joined fields
+  product?: Product;
+}
+
+export interface Profile {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserRoleRecord {
+  id: string;
+  user_id: string;
+  role: UserRole;
+  created_at: string;
 }
 
 export interface CategoryInfo {
@@ -55,32 +82,32 @@ export interface CategoryInfo {
 
 export const CATEGORIES: CategoryInfo[] = [
   {
-    id: '1',
-    name: 'Categoria 1',
+    id: 'F1',
+    name: 'Categoria F1',
     description: 'Artificii pentru uz public general',
     color: 'text-category-1',
     bgColor: 'bg-category-1/10',
     icon: '🎆',
   },
   {
-    id: '2',
-    name: 'Categoria 2',
+    id: 'F2',
+    name: 'Categoria F2',
     description: 'Artificii pentru uz în spații deschise',
     color: 'text-category-2',
     bgColor: 'bg-category-2/10',
     icon: '🎇',
   },
   {
-    id: '3',
-    name: 'Categoria 3',
+    id: 'F3',
+    name: 'Categoria F3',
     description: 'Artificii pentru uz profesional',
     color: 'text-category-3',
     bgColor: 'bg-category-3/10',
     icon: '💥',
   },
   {
-    id: '4',
-    name: 'Categoria 4',
+    id: 'F4',
+    name: 'Categoria F4',
     description: 'Artificii pentru uz exclusiv profesional',
     color: 'text-category-4',
     bgColor: 'bg-category-4/10',
