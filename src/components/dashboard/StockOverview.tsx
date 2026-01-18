@@ -1,19 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CATEGORIES, PyroCategory } from '@/types';
-import { getStockByCategory } from '@/data/mockData';
+import { useProductStats } from '@/hooks/useProducts';
 import { cn } from '@/lib/utils';
 
 const categoryColors: Record<PyroCategory, string> = {
-  '1': 'bg-emerald-500',
-  '2': 'bg-sky-500',
-  '3': 'bg-amber-500',
-  '4': 'bg-red-500',
+  'F1': 'bg-emerald-500',
+  'F2': 'bg-sky-500',
+  'F3': 'bg-amber-500',
+  'F4': 'bg-red-500',
   'T1': 'bg-violet-500',
   'T2': 'bg-pink-500',
 };
 
 export function StockOverview() {
-  const stockByCategory = getStockByCategory();
+  const { stockByCategory } = useProductStats();
   const totalStock = Object.values(stockByCategory).reduce((a, b) => a + b, 0);
 
   return (
@@ -26,7 +26,7 @@ export function StockOverview() {
       <CardContent>
         <div className="space-y-4">
           {CATEGORIES.map((category) => {
-            const quantity = stockByCategory[category.id];
+            const quantity = stockByCategory[category.id] || 0;
             const percentage = totalStock > 0 ? (quantity / totalStock) * 100 : 0;
 
             return (
