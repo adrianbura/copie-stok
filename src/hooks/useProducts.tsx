@@ -35,11 +35,27 @@ export function useProduct(id: string) {
   });
 }
 
+interface CreateProductInput {
+  code: string;
+  name: string;
+  category: PyroCategory;
+  quantity?: number;
+  min_stock?: number;
+  unit_price?: number;
+  supplier?: string | null;
+  location?: string | null;
+  batch_number?: string | null;
+  expiry_date?: string | null;
+  net_weight?: number | null;
+  hazard_class?: string | null;
+  certification?: string | null;
+}
+
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
+    mutationFn: async (product: CreateProductInput) => {
       const { data, error } = await supabase
         .from('products')
         .insert(product)

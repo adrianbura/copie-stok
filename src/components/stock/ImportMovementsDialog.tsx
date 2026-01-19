@@ -9,10 +9,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useProducts, useUpdateProduct } from '@/hooks/useProducts';
+import { useProducts, useUpdateProduct, useCreateProduct } from '@/hooks/useProducts';
 import { useCreateStockMovement } from '@/hooks/useStockMovements';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import type { Database } from '@/integrations/supabase/types';
+
+type PyroCategory = Database['public']['Enums']['pyro_category'];
 
 interface ImportMovementsDialogProps {
   type: 'entry' | 'exit';
@@ -24,10 +27,14 @@ interface ImportRow {
   unitPrice?: number;
   reference?: string;
   notes?: string;
+  productName?: string;
+  category?: PyroCategory;
+  supplier?: string;
 }
 
 interface ImportResult {
   success: number;
+  created: number;
   errors: string[];
 }
 
@@ -39,7 +46,10 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
   
   const { data: products } = useProducts();
   const updateProduct = useUpdateProduct();
+  const createProduct = useCreateProduct();
   const createMovement = useCreateStockMovement();
+
+  const validCategories: PyroCategory[] = ['F1', 'F2', 'F3', 'F4', 'T1', 'T2'];
 
   const parseCSV = (text: string): ImportRow[] => {
     const lines = text.trim().split('\n');
@@ -55,12 +65,21 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
         const quantity = parseInt(parts[1], 10);
         const unitPrice = parts[2] ? parseFloat(parts[2]) : undefined;
         if (!isNaN(quantity) && quantity > 0) {
+          // Parse category if provided
+          const categoryRaw = parts[5]?.toUpperCase();
+          const category = validCategories.includes(categoryRaw as PyroCategory) 
+            ? categoryRaw as PyroCategory 
+            : undefined;
+          
           rows.push({
             productCode: parts[0],
             quantity,
             unitPrice: unitPrice && !isNaN(unitPrice) ? unitPrice : undefined,
             reference: parts[3] || undefined,
             notes: parts[4] || undefined,
+            productName: parts[5] || undefined,
+            category: parts[6] ? (validCategories.includes(parts[6].toUpperCase() as PyroCategory) ? parts[6].toUpperCase() as PyroCategory : 'F2') : undefined,
+            supplier: parts[7] || undefined,
           });
         }
       }
@@ -86,17 +105,37 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
         return;
       }
 
-      const importResult: ImportResult = { success: 0, errors: [] };
+      const importResult: ImportResult = { success: 0, created: 0, errors: [] };
 
       for (const row of rows) {
-        const product = products?.find(p => 
+        let product = products?.find(p => 
           p.code.toLowerCase() === row.productCode.toLowerCase()
         );
 
-        if (!product) {
+        // For entries: create the product if it doesn't exist
+        if (!product && type === 'entry') {
+          try {
+            const newProduct = await createProduct.mutateAsync({
+              code: row.productCode,
+              name: row.productName || row.productCode,
+              category: row.category || 'F2',
+              quantity: 0,
+              unit_price: row.unitPrice || 0,
+              min_stock: 10,
+              supplier: row.supplier || null,
+            });
+            product = newProduct;
+            importResult.created++;
+          } catch (error) {
+            importResult.errors.push(`Eroare la crearea produsului ${row.productCode}: ${error}`);
+            continue;
+          }
+        } else if (!product && type === 'exit') {
           importResult.errors.push(`Produs negăsit: ${row.productCode}`);
           continue;
         }
+
+        if (!product) continue;
 
         if (type === 'exit' && product.quantity < row.quantity) {
           importResult.errors.push(
@@ -129,8 +168,11 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
 
       setResult(importResult);
       
-      if (importResult.success > 0) {
-        toast.success(`${importResult.success} mișcări importate cu succes`);
+      if (importResult.success > 0 || importResult.created > 0) {
+        const messages = [];
+        if (importResult.success > 0) messages.push(`${importResult.success} mișcări importate`);
+        if (importResult.created > 0) messages.push(`${importResult.created} produse noi create`);
+        toast.success(messages.join(', '));
       }
       
       if (importResult.errors.length > 0) {
@@ -180,14 +222,16 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
         <div className="space-y-4">
           <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2">
             <p className="font-medium">Format fișier CSV:</p>
-            <code className="block bg-background p-2 rounded text-xs">
-              cod_produs,cantitate,pret_unitar,referinta,note<br />
-              PYRO001,10,25.50,DOC-001,Aprovizionare<br />
-              PYRO002,5,15.00,DOC-002,
+            <code className="block bg-background p-2 rounded text-xs overflow-x-auto">
+              cod_produs,cantitate,pret_unitar,referinta,note,denumire,categorie,furnizor<br />
+              PYRO001,10,25.50,DOC-001,Aprovizionare,Artificii F2,F2,Pyro SRL<br />
+              PYRO002,5,15.00,DOC-002,,,,
             </code>
             <p className="text-muted-foreground text-xs">
               Separatori acceptați: virgulă (,) sau punct și virgulă (;)<br />
-              Prețul unitar este opțional și va actualiza prețul produsului la import.
+              <strong>Produse noi:</strong> La import intrări, produsele inexistente sunt create automat.<br />
+              Câmpuri obligatorii: cod_produs, cantitate<br />
+              Câmpuri opționale: pret_unitar, referinta, note, denumire, categorie (F1-F4, T1-T2), furnizor
             </p>
           </div>
 
@@ -219,11 +263,13 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
 
           {result && (
             <div className="space-y-2">
-              {result.success > 0 && (
+              {(result.success > 0 || result.created > 0) && (
                 <Alert className="border-success/50 bg-success/10">
                   <CheckCircle2 className="h-4 w-4 text-success" />
                   <AlertDescription className="text-success">
-                    {result.success} mișcări importate cu succes
+                    {result.success > 0 && `${result.success} mișcări importate`}
+                    {result.success > 0 && result.created > 0 && ', '}
+                    {result.created > 0 && `${result.created} produse noi create`}
                   </AlertDescription>
                 </Alert>
               )}
