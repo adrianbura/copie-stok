@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useProducts } from '@/hooks/useProducts';
+import { useProducts, useUpdateProduct } from '@/hooks/useProducts';
 import { useCreateStockMovement } from '@/hooks/useStockMovements';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -21,6 +21,7 @@ interface ImportMovementsDialogProps {
 interface ImportRow {
   productCode: string;
   quantity: number;
+  unitPrice?: number;
   reference?: string;
   notes?: string;
 }
@@ -37,6 +38,7 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: products } = useProducts();
+  const updateProduct = useUpdateProduct();
   const createMovement = useCreateStockMovement();
 
   const parseCSV = (text: string): ImportRow[] => {
@@ -51,12 +53,14 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
       const parts = line.split(/[,;]/).map(p => p.trim().replace(/"/g, ''));
       if (parts.length >= 2) {
         const quantity = parseInt(parts[1], 10);
+        const unitPrice = parts[2] ? parseFloat(parts[2]) : undefined;
         if (!isNaN(quantity) && quantity > 0) {
           rows.push({
             productCode: parts[0],
             quantity,
-            reference: parts[2] || undefined,
-            notes: parts[3] || undefined,
+            unitPrice: unitPrice && !isNaN(unitPrice) ? unitPrice : undefined,
+            reference: parts[3] || undefined,
+            notes: parts[4] || undefined,
           });
         }
       }
@@ -102,6 +106,14 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
         }
 
         try {
+          // Update product price if provided (for entries)
+          if (type === 'entry' && row.unitPrice !== undefined) {
+            await updateProduct.mutateAsync({
+              id: product.id,
+              unit_price: row.unitPrice,
+            });
+          }
+          
           await createMovement.mutateAsync({
             product_id: product.id,
             quantity: row.quantity,
@@ -169,12 +181,13 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
           <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2">
             <p className="font-medium">Format fișier CSV:</p>
             <code className="block bg-background p-2 rounded text-xs">
-              cod_produs,cantitate,referinta,note<br />
-              PYRO001,10,DOC-001,Aprovizionare<br />
-              PYRO002,5,DOC-002,
+              cod_produs,cantitate,pret_unitar,referinta,note<br />
+              PYRO001,10,25.50,DOC-001,Aprovizionare<br />
+              PYRO002,5,15.00,DOC-002,
             </code>
             <p className="text-muted-foreground text-xs">
-              Separatori acceptați: virgulă (,) sau punct și virgulă (;)
+              Separatori acceptați: virgulă (,) sau punct și virgulă (;)<br />
+              Prețul unitar este opțional și va actualiza prețul produsului la import.
             </p>
           </div>
 

@@ -33,6 +33,7 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
     newProductCode: '',
     category: '' as PyroCategory | '',
     quantity: '',
+    unitPrice: '',
     documentNumber: '',
     supplier: '',
     notes: '',
@@ -58,6 +59,8 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
           return;
         }
         
+        const unitPrice = parseFloat(formData.unitPrice) || 0;
+        
         // Create new product with initial stock of 0 (will be updated by movement)
         const newProduct = await createProduct.mutateAsync({
           code: formData.newProductCode,
@@ -65,7 +68,7 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
           category: formData.category as PyroCategory,
           quantity: 0, // Start with 0, movement will add the quantity
           min_stock: 10,
-          unit_price: 0,
+          unit_price: unitPrice,
           supplier: formData.supplier || null,
           location: null,
           batch_number: null,
@@ -111,6 +114,7 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
         newProductCode: '',
         category: '',
         quantity: '',
+        unitPrice: '',
         documentNumber: '',
         supplier: '',
         notes: '',
@@ -198,23 +202,39 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
             </div>
 
             {isNewProduct && (
-              <div className="space-y-2">
-                <Label htmlFor="category">Categorie *</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value as PyroCategory })}>
-                  <SelectTrigger><SelectValue placeholder="Selectează categoria" /></SelectTrigger>
-                  <SelectContent className="z-50">
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        <span className="flex items-center gap-2">
-                          <span>{cat.icon}</span>
-                          <span>{cat.id}</span>
-                          <span className="text-muted-foreground text-xs">- {cat.name}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="category">Categorie *</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value as PyroCategory })}>
+                    <SelectTrigger><SelectValue placeholder="Selectează categoria" /></SelectTrigger>
+                    <SelectContent className="z-50">
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{cat.icon}</span>
+                            <span>{cat.id}</span>
+                            <span className="text-muted-foreground text-xs">- {cat.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="unitPrice">Preț Unitar (RON) *</Label>
+                  <Input 
+                    id="unitPrice" 
+                    type="number" 
+                    min="0" 
+                    step="0.01" 
+                    placeholder="Ex: 25.50" 
+                    value={formData.unitPrice} 
+                    onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })} 
+                    required 
+                  />
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -240,7 +260,7 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Salvează Intrarea
             </Button>
-            <Button type="button" variant="outline" onClick={() => { setFormData({ productId: '', newProductName: '', newProductCode: '', category: '', quantity: '', documentNumber: '', supplier: '', notes: '' }); setEntryDate(new Date()); setIsNewProduct(false); }}>
+            <Button type="button" variant="outline" onClick={() => { setFormData({ productId: '', newProductName: '', newProductCode: '', category: '', quantity: '', unitPrice: '', documentNumber: '', supplier: '', notes: '' }); setEntryDate(new Date()); setIsNewProduct(false); }}>
               <X className="h-4 w-4 mr-2" />
               Resetează
             </Button>
