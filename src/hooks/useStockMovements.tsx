@@ -3,11 +3,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { StockMovement, MovementType } from '@/types';
 import { toast } from 'sonner';
 
+export interface StockMovementWithDetails {
+  id: string;
+  product_id: string;
+  type: MovementType;
+  quantity: number;
+  reference: string | null;
+  notes: string | null;
+  date: string;
+  created_at: string;
+  created_by: string | null;
+  product: { id: string; code: string; name: string; category: string };
+  operator_name?: string | null;
+}
+
 export function useStockMovements() {
   return useQuery({
     queryKey: ['stock_movements'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch movements with product info
+      const { data: movements, error: movementsError } = await supabase
         .from('stock_movements')
         .select(`
           *,
@@ -15,8 +30,23 @@ export function useStockMovements() {
         `)
         .order('date', { ascending: false });
       
-      if (error) throw error;
-      return data as (StockMovement & { product: { id: string; code: string; name: string; category: string } })[];
+      if (movementsError) throw movementsError;
+
+      // Fetch profiles to map created_by to operator names
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name');
+      
+      if (profilesError) throw profilesError;
+
+      // Create a map of user_id to full_name
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+
+      // Combine data
+      return (movements || []).map(m => ({
+        ...m,
+        operator_name: m.created_by ? profileMap.get(m.created_by) || null : null
+      })) as StockMovementWithDetails[];
     },
   });
 }
@@ -25,7 +55,7 @@ export function useRecentMovements(limit: number = 5) {
   return useQuery({
     queryKey: ['stock_movements', 'recent', limit],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: movements, error: movementsError } = await supabase
         .from('stock_movements')
         .select(`
           *,
@@ -34,8 +64,20 @@ export function useRecentMovements(limit: number = 5) {
         .order('date', { ascending: false })
         .limit(limit);
       
-      if (error) throw error;
-      return data as (StockMovement & { product: { id: string; code: string; name: string; category: string } })[];
+      if (movementsError) throw movementsError;
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name');
+      
+      if (profilesError) throw profilesError;
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+
+      return (movements || []).map(m => ({
+        ...m,
+        operator_name: m.created_by ? profileMap.get(m.created_by) || null : null
+      })) as StockMovementWithDetails[];
     },
   });
 }
