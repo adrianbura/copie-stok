@@ -35,7 +35,9 @@ interface ImportRow {
 interface ImportResult {
   success: number;
   created: number;
+  skipped: string[];
   errors: string[];
+  totalRows: number;
 }
 
 export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
@@ -51,41 +53,54 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
 
   const validCategories: PyroCategory[] = ['F1', 'F2', 'F3', 'F4', 'T1', 'T2'];
 
-  const parseCSV = (text: string): ImportRow[] => {
+  const parseCSV = (text: string): { rows: ImportRow[]; skipped: string[]; totalRows: number } => {
     const lines = text.trim().split('\n');
     const rows: ImportRow[] = [];
+    const skipped: string[] = [];
+    const totalRows = lines.length - 1; // exclude header
     
     // Skip header row
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line) continue;
+      if (!line) {
+        skipped.push(`Rând ${i + 1}: rând gol`);
+        continue;
+      }
       
       const parts = line.split(/[,;]/).map(p => p.trim().replace(/"/g, ''));
-      if (parts.length >= 2) {
-        const quantity = parseInt(parts[1], 10);
-        const unitPrice = parts[2] ? parseFloat(parts[2]) : undefined;
-        if (!isNaN(quantity) && quantity > 0) {
-          // Parse category if provided
-          const categoryRaw = parts[5]?.toUpperCase();
-          const category = validCategories.includes(categoryRaw as PyroCategory) 
-            ? categoryRaw as PyroCategory 
-            : undefined;
-          
-          rows.push({
-            productCode: parts[0],
-            quantity,
-            unitPrice: unitPrice && !isNaN(unitPrice) ? unitPrice : undefined,
-            reference: parts[3] || undefined,
-            notes: parts[4] || undefined,
-            productName: parts[5] || undefined,
-            category: parts[6] ? (validCategories.includes(parts[6].toUpperCase() as PyroCategory) ? parts[6].toUpperCase() as PyroCategory : 'F2') : undefined,
-            supplier: parts[7] || undefined,
-          });
-        }
+      
+      if (parts.length < 2) {
+        skipped.push(`Rând ${i + 1}: format invalid (${parts[0] || 'gol'})`);
+        continue;
       }
+      
+      const productCode = parts[0];
+      if (!productCode) {
+        skipped.push(`Rând ${i + 1}: cod produs lipsă`);
+        continue;
+      }
+      
+      const quantity = parseInt(parts[1], 10);
+      if (isNaN(quantity) || quantity <= 0) {
+        skipped.push(`Rând ${i + 1} (${productCode}): cantitate invalidă "${parts[1]}"`);
+        continue;
+      }
+      
+      const unitPrice = parts[2] ? parseFloat(parts[2]) : undefined;
+      
+      rows.push({
+        productCode,
+        quantity,
+        unitPrice: unitPrice && !isNaN(unitPrice) ? unitPrice : undefined,
+        reference: parts[3] || undefined,
+        notes: parts[4] || undefined,
+        productName: parts[5] || undefined,
+        category: parts[6] ? (validCategories.includes(parts[6].toUpperCase() as PyroCategory) ? parts[6].toUpperCase() as PyroCategory : 'F2') : undefined,
+        supplier: parts[7] || undefined,
+      });
     }
     
-    return rows;
+    return { rows, skipped, totalRows };
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,15 +112,16 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
 
     try {
       const text = await file.text();
-      const rows = parseCSV(text);
+      const { rows, skipped, totalRows } = parseCSV(text);
       
       if (rows.length === 0) {
-        toast.error('Fișierul nu conține date valide');
+        setResult({ success: 0, created: 0, skipped, errors: [], totalRows });
+        toast.error('Fișierul nu conține date valide pentru import');
         setImporting(false);
         return;
       }
 
-      const importResult: ImportResult = { success: 0, created: 0, errors: [] };
+      const importResult: ImportResult = { success: 0, created: 0, skipped, errors: [], totalRows };
 
       for (const row of rows) {
         let product = products?.find(p => 
@@ -262,24 +278,52 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
           </Button>
 
           {result && (
-            <div className="space-y-2">
-              {(result.success > 0 || result.created > 0) && (
-                <Alert className="border-success/50 bg-success/10">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  <AlertDescription className="text-success">
-                    {result.success > 0 && `${result.success} mișcări importate`}
-                    {result.success > 0 && result.created > 0 && ', '}
-                    {result.created > 0 && `${result.created} produse noi create`}
+            <div className="space-y-3">
+              {/* Summary */}
+              <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                <div className="font-medium mb-2">Raport import ({result.totalRows} rânduri în fișier):</div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-success" />
+                    <span>Importate: {result.success}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-primary" />
+                    <span>Produse create: {result.created}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 text-warning" />
+                    <span>Sărite (parse): {result.skipped.length}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 text-destructive" />
+                    <span>Erori: {result.errors.length}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Skipped rows */}
+              {result.skipped.length > 0 && (
+                <Alert className="border-warning/50 bg-warning/10">
+                  <AlertCircle className="h-4 w-4 text-warning" />
+                  <AlertDescription>
+                    <div className="font-medium mb-1">{result.skipped.length} rânduri sărite la parsare:</div>
+                    <ul className="text-xs space-y-1 max-h-24 overflow-y-auto">
+                      {result.skipped.map((msg, i) => (
+                        <li key={i}>• {msg}</li>
+                      ))}
+                    </ul>
                   </AlertDescription>
                 </Alert>
               )}
               
+              {/* Errors */}
               {result.errors.length > 0 && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    <div className="font-medium mb-1">{result.errors.length} erori:</div>
-                    <ul className="text-xs space-y-1 max-h-32 overflow-y-auto">
+                    <div className="font-medium mb-1">{result.errors.length} erori la procesare:</div>
+                    <ul className="text-xs space-y-1 max-h-24 overflow-y-auto">
                       {result.errors.map((err, i) => (
                         <li key={i}>• {err}</li>
                       ))}
