@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CATEGORIES } from '@/types';
 import { useProducts, useProductStats } from '@/hooks/useProducts';
 import { FileSpreadsheet, Download, BarChart3, PieChart, TrendingUp, Package } from 'lucide-react';
+import { ProductMovementRegister } from '@/components/reports/ProductMovementRegister';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from 'recharts';
 
 const COLORS = ['#10b981', '#0ea5e9', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -37,7 +38,8 @@ export default function Reports() {
             </h1>
             <p className="text-muted-foreground mt-1">Analize și statistici despre stocul de produse pirotehnice</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <ProductMovementRegister />
             <Select defaultValue="month">
               <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
               <SelectContent>
