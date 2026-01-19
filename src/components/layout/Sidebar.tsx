@@ -17,6 +17,7 @@ import {
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { UserSettingsDialog } from '@/components/settings/UserSettingsDialog';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -30,6 +31,7 @@ const navigation = [
 export function Sidebar() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { profile, signOut, isAdmin } = useAuth();
 
   return (
@@ -86,7 +88,7 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* User Info & Logout */}
+        {/* User Info & Actions */}
         <div className="border-t border-sidebar-border p-3 space-y-2">
           {/* User Info */}
           <div className={cn(
@@ -108,6 +110,19 @@ export function Sidebar() {
             )}
           </div>
 
+          {/* Settings Button */}
+          <Button
+            variant="ghost"
+            onClick={() => setSettingsOpen(true)}
+            className={cn(
+              'w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+              collapsed && 'justify-center px-0'
+            )}
+          >
+            <Settings className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Setări</span>}
+          </Button>
+
           {/* Logout Button */}
           <Button
             variant="ghost"
@@ -121,6 +136,8 @@ export function Sidebar() {
             {!collapsed && <span>Deconectare</span>}
           </Button>
         </div>
+
+        <UserSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       </div>
     </aside>
   );
