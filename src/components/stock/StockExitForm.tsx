@@ -1,13 +1,17 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
+import { ro } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useProducts } from '@/hooks/useProducts';
 import { useCreateStockMovement } from '@/hooks/useStockMovements';
-import { ArrowUpFromLine, Save, X, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowUpFromLine, Save, X, AlertTriangle, Loader2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StockExitFormProps {
@@ -25,6 +29,7 @@ export function StockExitForm({ onSuccess }: StockExitFormProps) {
     reason: 'Vânzare',
     notes: '',
   });
+  const [exitDate, setExitDate] = useState<Date>(new Date());
 
   const selectedProduct = products?.find((p) => p.id === formData.productId);
   const requestedQuantity = parseInt(formData.quantity) || 0;
@@ -42,9 +47,11 @@ export function StockExitForm({ onSuccess }: StockExitFormProps) {
         quantity: requestedQuantity,
         reference: formData.documentNumber,
         notes: `${formData.reason}: ${formData.notes}`,
+        date: exitDate.toISOString(),
       });
 
       setFormData({ productId: '', quantity: '', documentNumber: '', reason: 'Vânzare', notes: '' });
+      setExitDate(new Date());
       onSuccess?.();
     } catch (error) {
       console.error('Error:', error);
@@ -109,6 +116,34 @@ export function StockExitForm({ onSuccess }: StockExitFormProps) {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label>Data Ieșirii *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !exitDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {exitDate ? format(exitDate, "PPP", { locale: ro }) : <span>Selectează data</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={exitDate}
+                    onSelect={(date) => date && setExitDate(date)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                    locale={ro}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -121,7 +156,7 @@ export function StockExitForm({ onSuccess }: StockExitFormProps) {
               {createMovement.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Salvează Ieșirea
             </Button>
-            <Button type="button" variant="outline" onClick={() => setFormData({ productId: '', quantity: '', documentNumber: '', reason: 'Vânzare', notes: '' })}>
+            <Button type="button" variant="outline" onClick={() => { setFormData({ productId: '', quantity: '', documentNumber: '', reason: 'Vânzare', notes: '' }); setExitDate(new Date()); }}>
               <X className="h-4 w-4 mr-2" />
               Resetează
             </Button>
