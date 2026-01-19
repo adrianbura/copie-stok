@@ -96,11 +96,15 @@ export function useCreateStockMovement() {
   
   return useMutation({
     mutationFn: async (movement: CreateMovementInput) => {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data, error } = await supabase
         .from('stock_movements')
         .insert({
           ...movement,
           date: movement.date || new Date().toISOString(),
+          created_by: user?.id || null,
         })
         .select()
         .single();
