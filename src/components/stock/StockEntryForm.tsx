@@ -14,6 +14,7 @@ import { useCreateStockMovement } from '@/hooks/useStockMovements';
 import { PyroCategory, CATEGORIES } from '@/types';
 import { ArrowDownToLine, Save, X, CalendarIcon, Plus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface StockEntryFormProps {
   onSuccess?: () => void;
@@ -42,14 +43,27 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const quantity = parseInt(formData.quantity) || 0;
+    
+    if (quantity <= 0) {
+      toast.error('Cantitatea trebuie să fie mai mare decât 0');
+      return;
+    }
+    
     try {
       if (isNewProduct) {
+        // Validate new product fields
+        if (!formData.newProductCode || !formData.newProductName || !formData.category) {
+          toast.error('Completează toate câmpurile obligatorii pentru produsul nou');
+          return;
+        }
+        
         // Create new product with initial stock
         await createProduct.mutateAsync({
           code: formData.newProductCode,
           name: formData.newProductName,
           category: formData.category as PyroCategory,
-          quantity: parseInt(formData.quantity) || 0,
+          quantity: quantity,
           min_stock: 10,
           unit_price: 0,
           supplier: formData.supplier || null,
@@ -60,18 +74,27 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
           hazard_class: null,
           certification: null,
         });
+        
+        toast.success(`Produs nou "${formData.newProductName}" creat cu ${quantity} bucăți`);
       } else {
+        // Validate existing product selection
+        if (!formData.productId) {
+          toast.error('Selectează un produs existent');
+          return;
+        }
+        
         // Create stock movement for existing product
         await createMovement.mutateAsync({
           product_id: formData.productId,
           type: 'entry',
-          quantity: parseInt(formData.quantity) || 0,
-          reference: formData.documentNumber,
-          notes: formData.notes,
+          quantity: quantity,
+          reference: formData.documentNumber || undefined,
+          notes: formData.notes || undefined,
           date: entryDate.toISOString(),
         });
       }
       
+      // Reset form
       setFormData({
         productId: '',
         newProductName: '',
@@ -150,47 +173,51 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="newProductName">Nume Produs Nou *</Label>
-                  <Input id="newProductName" placeholder="Ex: Racheta Aurie 50mm" value={formData.newProductName} onChange={(e) => setFormData({ ...formData, newProductName: e.target.value })} required={isNewProduct} />
+                  <Input id="newProductName" placeholder="Ex: Racheta Aurie 50mm" value={formData.newProductName} onChange={(e) => setFormData({ ...formData, newProductName: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="newProductCode">Cod Produs *</Label>
-                  <Input id="newProductCode" placeholder="Ex: RACH-050-AU" value={formData.newProductCode} onChange={(e) => setFormData({ ...formData, newProductCode: e.target.value })} required={isNewProduct} />
+                  <Input id="newProductCode" placeholder="Ex: RACH-050-AU" value={formData.newProductCode} onChange={(e) => setFormData({ ...formData, newProductCode: e.target.value })} />
                 </div>
               </>
             )}
-
-            <div className="space-y-2">
-              <Label htmlFor="category">Categorie *</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value as PyroCategory })}>
-                <SelectTrigger><SelectValue placeholder="Selectează categoria" /></SelectTrigger>
-                <SelectContent className="z-50">
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <span className="flex items-center gap-2">
-                        <span>{cat.icon}</span>
-                        <span>{cat.id}</span>
-                        <span className="text-muted-foreground text-xs">- {cat.name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="quantity">Cantitate *</Label>
               <Input id="quantity" type="number" min="1" placeholder="Ex: 100" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} required />
             </div>
 
+            {isNewProduct && (
+              <div className="space-y-2">
+                <Label htmlFor="category">Categorie *</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value as PyroCategory })}>
+                  <SelectTrigger><SelectValue placeholder="Selectează categoria" /></SelectTrigger>
+                  <SelectContent className="z-50">
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <span className="flex items-center gap-2">
+                          <span>{cat.icon}</span>
+                          <span>{cat.id}</span>
+                          <span className="text-muted-foreground text-xs">- {cat.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="documentNumber">Număr Document</Label>
               <Input id="documentNumber" placeholder="Ex: NIR-2024-0157" value={formData.documentNumber} onChange={(e) => setFormData({ ...formData, documentNumber: e.target.value })} />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="supplier">Furnizor</Label>
-              <Input id="supplier" placeholder="Ex: PyroTech SRL" value={formData.supplier} onChange={(e) => setFormData({ ...formData, supplier: e.target.value })} />
-            </div>
+            {isNewProduct && (
+              <div className="space-y-2">
+                <Label htmlFor="supplier">Furnizor</Label>
+                <Input id="supplier" placeholder="Ex: PyroTech SRL" value={formData.supplier} onChange={(e) => setFormData({ ...formData, supplier: e.target.value })} />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
