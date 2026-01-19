@@ -2,16 +2,34 @@ import { useState, useMemo } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { ProductsTable } from '@/components/products/ProductsTable';
 import { ProductFilters } from '@/components/products/ProductFilters';
+import { ProductDialog } from '@/components/products/ProductDialog';
 import { Button } from '@/components/ui/button';
-import { useProducts } from '@/hooks/useProducts';
-import { PyroCategory } from '@/types';
+import { useProducts, useDeleteProduct } from '@/hooks/useProducts';
+import { useAuth } from '@/hooks/useAuth';
+import { Product, PyroCategory } from '@/types';
 import { Plus, Upload, Download, Package, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
+  const deleteProduct = useDeleteProduct();
+  const { canEdit, isAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<PyroCategory | 'all'>('all');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const filteredProducts = useMemo(() => {
     return (products || []).filter((product) => {
@@ -26,6 +44,29 @@ export default function Products() {
 
   const handleClearFilters = () => { setSearchQuery(''); setSelectedCategory('all'); };
 
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setDialogOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (productToDelete) {
+      await deleteProduct.mutateAsync(productToDelete.id);
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -37,7 +78,11 @@ export default function Products() {
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import</Button>
             <Button variant="outline" className="gap-2"><Download className="h-4 w-4" />Export</Button>
-            <Button className="gap-2 gradient-fire text-white border-0 shadow-glow"><Plus className="h-4 w-4" />Produs Nou</Button>
+            {canEdit && (
+              <Button onClick={handleAddProduct} className="gap-2 gradient-fire text-white border-0 shadow-glow">
+                <Plus className="h-4 w-4" />Produs Nou
+              </Button>
+            )}
           </div>
         </div>
 
@@ -50,11 +95,52 @@ export default function Products() {
         {isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
         ) : filteredProducts.length > 0 ? (
-          <ProductsTable products={filteredProducts} />
+          <ProductsTable 
+            products={filteredProducts} 
+            onEdit={canEdit ? handleEditProduct : undefined}
+            onDelete={isAdmin ? handleDeleteClick : undefined}
+          />
         ) : (
-          <Card className="py-12"><CardContent className="text-center"><Package className="h-12 w-12 mx-auto text-muted-foreground/50" /><h3 className="mt-4 text-lg font-semibold">Niciun produs găsit</h3><p className="text-muted-foreground mt-1">Încearcă să modifici criteriile de căutare sau adaugă un produs nou.</p><Button className="mt-4 gap-2"><Plus className="h-4 w-4" />Adaugă Produs</Button></CardContent></Card>
+          <Card className="py-12">
+            <CardContent className="text-center">
+              <Package className="h-12 w-12 mx-auto text-muted-foreground/50" />
+              <h3 className="mt-4 text-lg font-semibold">Niciun produs găsit</h3>
+              <p className="text-muted-foreground mt-1">Încearcă să modifici criteriile de căutare sau adaugă un produs nou.</p>
+              {canEdit && (
+                <Button onClick={handleAddProduct} className="mt-4 gap-2">
+                  <Plus className="h-4 w-4" />Adaugă Produs
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         )}
       </div>
+
+      <ProductDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen} 
+        product={editingProduct} 
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmare ștergere</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sigur dorești să ștergi produsul "{productToDelete?.name}"? Această acțiune nu poate fi anulată.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulare</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Șterge
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }
