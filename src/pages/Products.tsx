@@ -19,6 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
@@ -67,6 +69,38 @@ export default function Products() {
     }
   };
 
+  const handleExport = () => {
+    if (!products || products.length === 0) {
+      toast.error('Nu există produse pentru export');
+      return;
+    }
+
+    const exportData = products.map(product => ({
+      'Cod Produs': product.code,
+      'Denumire': product.name,
+      'Categorie': product.category,
+      'Cantitate': product.quantity,
+      'Preț Unitar': product.unit_price,
+      'Furnizor': product.supplier || '-',
+      'Greutate Netă (kg)': product.net_weight || '-',
+      'Certificare': product.certification || '-',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Stoc Produse');
+
+    // Auto-size columns
+    const maxWidths = Object.keys(exportData[0]).map(key => 
+      Math.max(key.length, ...exportData.map(row => String(row[key as keyof typeof row]).length))
+    );
+    worksheet['!cols'] = maxWidths.map(w => ({ wch: w + 2 }));
+
+    const date = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `stoc_produse_${date}.xlsx`);
+    toast.success('Fișierul Excel a fost exportat cu succes');
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -77,7 +111,7 @@ export default function Products() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import</Button>
-            <Button variant="outline" className="gap-2"><Download className="h-4 w-4" />Export</Button>
+            <Button variant="outline" className="gap-2" onClick={handleExport}><Download className="h-4 w-4" />Export</Button>
             {canEdit && (
               <Button onClick={handleAddProduct} className="gap-2 gradient-fire text-white border-0 shadow-glow">
                 <Plus className="h-4 w-4" />Produs Nou
