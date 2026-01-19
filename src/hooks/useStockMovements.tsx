@@ -32,15 +32,14 @@ export function useStockMovements() {
       
       if (movementsError) throw movementsError;
 
-      // Fetch profiles to map created_by to operator names
+      // Fetch operator names using security definer function (bypasses RLS)
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name');
+        .rpc('get_operator_names');
       
       if (profilesError) throw profilesError;
 
       // Create a map of user_id to full_name
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+      const profileMap = new Map(profiles?.map((p: { user_id: string; full_name: string }) => [p.user_id, p.full_name]) || []);
 
       // Combine data
       return (movements || []).map(m => ({
@@ -66,13 +65,13 @@ export function useRecentMovements(limit: number = 5) {
       
       if (movementsError) throw movementsError;
 
+      // Fetch operator names using security definer function (bypasses RLS)
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name');
+        .rpc('get_operator_names');
       
       if (profilesError) throw profilesError;
 
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+      const profileMap = new Map(profiles?.map((p: { user_id: string; full_name: string }) => [p.user_id, p.full_name]) || []);
 
       return (movements || []).map(m => ({
         ...m,
