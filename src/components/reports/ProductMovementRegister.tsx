@@ -5,14 +5,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useProducts } from '@/hooks/useProducts';
-import { useStockMovements } from '@/hooks/useStockMovements';
-import { CATEGORIES, Product, StockMovement } from '@/types';
+import { useStockMovements, StockMovementWithDetails } from '@/hooks/useStockMovements';
+import { CATEGORIES, Product } from '@/types';
 import { FileText, Printer, Download, CalendarIcon, X } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
-interface MovementWithStock extends StockMovement {
+interface MovementWithStock extends StockMovementWithDetails {
   stockBefore: number;
   stockAfter: number;
 }
@@ -423,11 +423,12 @@ export function ProductMovementRegister() {
                       <table>
                         <thead>
                           <tr>
-                            <th style={{ width: '15%' }}>Data operațiunii</th>
-                            <th style={{ width: '12%' }}>Tip</th>
-                            <th style={{ width: '10%' }}>Cantitate</th>
-                            <th style={{ width: '12%' }}>Stoc înainte</th>
-                            <th style={{ width: '12%' }}>Stoc după</th>
+                            <th style={{ width: '14%' }}>Data operațiunii</th>
+                            <th style={{ width: '10%' }}>Tip</th>
+                            <th style={{ width: '8%' }}>Cantitate</th>
+                            <th style={{ width: '10%' }}>Stoc înainte</th>
+                            <th style={{ width: '10%' }}>Stoc după</th>
+                            <th style={{ width: '15%' }}>Operator</th>
                             <th>Document / Observații</th>
                           </tr>
                         </thead>
@@ -443,6 +444,7 @@ export function ProductMovementRegister() {
                               </td>
                               <td className="number">{movement.stockBefore}</td>
                               <td className="number" style={{ fontWeight: 'bold' }}>{movement.stockAfter}</td>
+                              <td className="center">{movement.operator_name || '-'}</td>
                               <td>
                                 {movement.reference && <span><strong>Ref:</strong> {movement.reference}</span>}
                                 {movement.reference && movement.notes && ' | '}
