@@ -58,12 +58,12 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
           return;
         }
         
-        // Create new product with initial stock
-        await createProduct.mutateAsync({
+        // Create new product with initial stock of 0 (will be updated by movement)
+        const newProduct = await createProduct.mutateAsync({
           code: formData.newProductCode,
           name: formData.newProductName,
           category: formData.category as PyroCategory,
-          quantity: quantity,
+          quantity: 0, // Start with 0, movement will add the quantity
           min_stock: 10,
           unit_price: 0,
           supplier: formData.supplier || null,
@@ -73,6 +73,16 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
           net_weight: null,
           hazard_class: null,
           certification: null,
+        });
+        
+        // Create stock movement for the initial entry
+        await createMovement.mutateAsync({
+          product_id: newProduct.id,
+          type: 'entry',
+          quantity: quantity,
+          reference: formData.documentNumber || 'Stoc inițial',
+          notes: formData.notes || `Produs nou adăugat: ${formData.newProductName}`,
+          date: entryDate.toISOString(),
         });
         
         toast.success(`Produs nou "${formData.newProductName}" creat cu ${quantity} bucăți`);
