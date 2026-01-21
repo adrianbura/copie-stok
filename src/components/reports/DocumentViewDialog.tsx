@@ -7,8 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { InventoryDocument } from '@/hooks/useInventoryDocuments';
 import { CATEGORIES } from '@/types';
-import { Printer, ArrowDownToLine, ArrowUpFromLine, X } from 'lucide-react';
-
+import { Printer, ArrowDownToLine, ArrowUpFromLine, X, FileText, ClipboardCheck } from 'lucide-react';
+import { generateOrderPrintHTML, generateFulfillmentPrintHTML, printPyroDocument } from './PyroOrderPrintTemplates';
 interface DocumentViewDialogProps {
   document: InventoryDocument | null;
   onClose: () => void;
@@ -326,14 +326,37 @@ export function DocumentViewDialog({ document, onClose }: DocumentViewDialogProp
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
+        <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
             <X className="h-4 w-4 mr-2" />
             Închide
           </Button>
+          
+          {/* Pyro-specific print buttons for exits */}
+          {!isEntry && (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={() => printPyroDocument(generateOrderPrintHTML({ document }))}
+                className="gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Comandă Materii
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => printPyroDocument(generateFulfillmentPrintHTML({ document }))}
+                className="gap-2"
+              >
+                <ClipboardCheck className="h-4 w-4" />
+                Îndeplinire
+              </Button>
+            </>
+          )}
+          
           <Button onClick={handlePrint} className="gap-2">
             <Printer className="h-4 w-4" />
-            Printează
+            {isEntry ? 'Printează NIR' : 'Printează Aviz'}
           </Button>
         </div>
       </DialogContent>

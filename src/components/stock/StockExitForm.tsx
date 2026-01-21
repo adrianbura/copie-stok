@@ -380,6 +380,7 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Vânzare">Vânzare</SelectItem>
+                    <SelectItem value="Foc Artificii">Foc Artificii</SelectItem>
                     <SelectItem value="Transfer">Transfer între depozite</SelectItem>
                     <SelectItem value="Casare">Casare/Pierdere</SelectItem>
                     <SelectItem value="Retur">Retur către furnizor</SelectItem>
