@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Flame } from 'lucide-react';
+import { Loader2, Flame, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Auth() {
@@ -149,6 +149,7 @@ function SignUpForm({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [registrationComplete, setRegistrationComplete] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,16 +166,69 @@ function SignUpForm({
 
     setIsSubmitting(true);
 
-    const { error } = await signUp(email, password, fullName);
+    const { error, data } = await signUp(email, password, fullName);
 
     if (error) {
       toast.error('Eroare la înregistrare: ' + error.message);
-    } else {
-      toast.success('Cont creat cu succes! Te poți autentifica acum.');
+      setIsSubmitting(false);
+      return;
     }
 
+    // Send approval notification to admin
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Wait a moment for the trigger to create the pending approval
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const { error: notifyError } = await supabase.functions.invoke('send-approval-notification', {
+        body: {
+          user_id: data?.user?.id,
+          email: email,
+          full_name: fullName
+        }
+      });
+
+      if (notifyError) {
+        console.error('Error sending approval notification:', notifyError);
+      }
+    } catch (notifyErr) {
+      console.error('Failed to send approval notification:', notifyErr);
+    }
+
+    setRegistrationComplete(true);
     setIsSubmitting(false);
   };
+
+  if (registrationComplete) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-warning">
+            <Clock className="h-5 w-5" />
+            Înregistrare în Așteptare
+          </CardTitle>
+          <CardDescription>
+            Contul tău a fost creat și așteaptă aprobare
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground">
+              Cererea ta de înregistrare a fost trimisă cu succes. 
+              Un administrator va verifica și aproba contul tău în cel mai scurt timp.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Vei putea accesa aplicația după primirea confirmării prin email.
+            </p>
+          </div>
+          <div className="text-center text-sm text-muted-foreground">
+            <p>Email înregistrat: <strong>{email}</strong></p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

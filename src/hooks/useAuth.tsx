@@ -1,7 +1,17 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { UserRole, Profile } from '@/types';
+import { UserRole } from '@/types';
+
+interface Profile {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  is_approved: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -10,7 +20,7 @@ interface AuthContextType {
   roles: UserRole[];
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null; data: { user: { id: string } | null } | null }>;
   signOut: () => Promise<void>;
   hasRole: (role: UserRole) => boolean;
   isAdmin: boolean;
@@ -103,16 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
         },
+        emailRedirectTo: `${window.location.origin}/`,
       },
     });
-    return { error };
+    return { error, data };
   };
 
   const signOut = async () => {
@@ -162,7 +173,7 @@ export function useAuth() {
       roles: [] as UserRole[],
       loading: true,
       signIn: async () => ({ error: new Error('AuthProvider not mounted') }),
-      signUp: async () => ({ error: new Error('AuthProvider not mounted') }),
+      signUp: async () => ({ error: new Error('AuthProvider not mounted'), data: null }),
       signOut: async () => {},
       hasRole: () => false,
       isAdmin: false,

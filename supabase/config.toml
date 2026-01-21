@@ -1,1 +1,7 @@
 project_id = "ktwjebxbpwmdisotvhtn"
+
+[functions.send-approval-notification]
+verify_jwt = false
+
+[functions.approve-user]
+verify_jwt = false

@@ -21,7 +21,7 @@ export function UserSettingsDialog({ open, onOpenChange }: UserSettingsDialogPro
   const { profile, isAdmin, isOperator } = useAuth();
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
-  const canResetData = isAdmin || isOperator;
+  const canResetData = isAdmin;
 
   return (
     <>
