@@ -1,10 +1,26 @@
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { StockExitForm } from '@/components/stock/StockExitForm';
+import { StockExitForm, ExitItem } from '@/components/stock/StockExitForm';
 import { MovementsHistory } from '@/components/stock/MovementsHistory';
-import { ImportMovementsDialog } from '@/components/stock/ImportMovementsDialog';
+import { ImportMovementsDialog, ImportedItem } from '@/components/stock/ImportMovementsDialog';
 import { ArrowUpFromLine } from 'lucide-react';
 
 export default function Exits() {
+  const [exitItems, setExitItems] = useState<ExitItem[]>([]);
+
+  const handleImportToList = (items: ImportedItem[]) => {
+    // Only add items with existing products for exits
+    const newItems: ExitItem[] = items
+      .filter(item => item.product !== null)
+      .map(item => ({
+        id: item.id,
+        product: item.product!,
+        quantity: item.quantity,
+      }));
+    
+    setExitItems(prev => [...prev, ...newItems]);
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -19,11 +35,14 @@ export default function Exits() {
               Înregistrează vânzări și scoate produse din stoc
             </p>
           </div>
-          <ImportMovementsDialog type="exit" />
+          <ImportMovementsDialog type="exit" onImportToList={handleImportToList} />
         </div>
 
         {/* Exit Form */}
-        <StockExitForm />
+        <StockExitForm 
+          externalItems={exitItems} 
+          onItemsChange={setExitItems} 
+        />
 
         {/* History */}
         <MovementsHistory type="exit" />
