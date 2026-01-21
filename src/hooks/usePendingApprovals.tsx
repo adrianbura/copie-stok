@@ -99,12 +99,51 @@ export function usePendingApprovals() {
     },
   });
 
+  const deleteUser = useMutation({
+    mutationFn: async (approval: PendingApproval) => {
+      // Delete from pending_approvals
+      const { error: approvalError } = await supabase
+        .from('pending_approvals')
+        .delete()
+        .eq('id', approval.id);
+
+      if (approvalError) throw approvalError;
+
+      // Delete profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', approval.user_id);
+
+      if (profileError) throw profileError;
+
+      // Delete user roles
+      const { error: rolesError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', approval.user_id);
+
+      if (rolesError) throw rolesError;
+
+      return approval;
+    },
+    onSuccess: (approval) => {
+      queryClient.invalidateQueries({ queryKey: ['pending-approvals'] });
+      toast.success(`Utilizatorul ${approval.full_name || approval.email} a fost eliminat.`);
+    },
+    onError: (error) => {
+      console.error('Error deleting user:', error);
+      toast.error('Eroare la eliminarea utilizatorului');
+    },
+  });
+
   return {
     approvals,
     isLoading,
     error,
     approveUser,
     rejectUser,
+    deleteUser,
     pendingCount: approvals.filter(a => a.status === 'pending').length,
   };
 }
