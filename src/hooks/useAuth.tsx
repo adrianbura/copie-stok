@@ -78,11 +78,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = async (userId: string) => {
     try {
       // Fetch profile
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
+      
+      // If profile doesn't exist, the user was deleted - sign them out
+      if (!profileData && !profileError) {
+        console.log('User profile not found - signing out');
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        setProfile(null);
+        setRoles([]);
+        setLoading(false);
+        return;
+      }
       
       if (profileData) {
         setProfile(profileData as Profile);
