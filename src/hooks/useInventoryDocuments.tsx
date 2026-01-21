@@ -37,6 +37,21 @@ interface CreateDocumentInput {
   total_value?: number;
 }
 
+// Helper to parse items from database
+function parseItems(items: unknown): DocumentItem[] {
+  if (!items) return [];
+  if (Array.isArray(items)) return items as DocumentItem[];
+  if (typeof items === 'string') {
+    try {
+      const parsed = JSON.parse(items);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 // Fetch all documents by type
 export function useInventoryDocuments(type: 'entry' | 'exit') {
   return useQuery({
@@ -56,7 +71,7 @@ export function useInventoryDocuments(type: 'entry' | 'exit') {
 
       return (data || []).map(doc => ({
         ...doc,
-        items: (doc.items as unknown as DocumentItem[]) || [],
+        items: parseItems(doc.items),
         operator_name: doc.created_by ? operatorMap.get(doc.created_by) || 'Necunoscut' : 'Sistem',
       })) as InventoryDocument[];
     },
@@ -85,7 +100,7 @@ export function useInventoryDocument(id: string | null) {
 
       return {
         ...data,
-        items: (data.items as unknown as DocumentItem[]) || [],
+        items: parseItems(data.items),
         operator_name: data.created_by ? operatorMap.get(data.created_by) || 'Necunoscut' : 'Sistem',
       } as InventoryDocument;
     },
