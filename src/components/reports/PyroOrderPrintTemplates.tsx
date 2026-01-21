@@ -140,11 +140,11 @@ export function generateOrderPrintHTML({ document, companyName = 'ARTIFICII GROU
       <table>
         <thead>
           <tr>
-            <th class="text-center" style="width: 50px;">Nr.</th>
-            <th style="width: 100px;">Cod</th>
+            <th class="text-center" style="width: 40px;">Nr.</th>
+            <th style="white-space: nowrap;">Cod</th>
             <th>Denumire Produs</th>
-            <th class="text-center" style="width: 80px;">Categorie</th>
-            <th class="text-right" style="width: 100px;">Cantitate</th>
+            <th class="text-center" style="white-space: nowrap;">Categorie</th>
+            <th class="text-right" style="white-space: nowrap;">Cantitate</th>
           </tr>
         </thead>
         <tbody>
@@ -322,13 +322,13 @@ export function generateFulfillmentPrintHTML({ document, companyName = 'ARTIFICI
       <table>
         <thead>
           <tr>
-            <th class="text-center" style="width: 50px;">Nr.</th>
-            <th style="width: 100px;">Cod</th>
+            <th class="text-center" style="width: 40px;">Nr.</th>
+            <th style="white-space: nowrap;">Cod</th>
             <th>Denumire Produs</th>
-            <th class="text-center" style="width: 70px;">Categ.</th>
-            <th class="text-right" style="width: 80px;">Primit</th>
-            <th class="text-right" style="width: 80px;">Consumat</th>
-            <th class="text-right" style="width: 80px;">Restituit</th>
+            <th class="text-center" style="white-space: nowrap;">Categ.</th>
+            <th class="text-right" style="white-space: nowrap;">Primit</th>
+            <th class="text-right" style="white-space: nowrap;">Consumat</th>
+            <th class="text-right" style="white-space: nowrap;">Restituit</th>
           </tr>
         </thead>
         <tbody>
