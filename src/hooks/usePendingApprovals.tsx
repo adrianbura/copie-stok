@@ -36,15 +36,7 @@ export function usePendingApprovals() {
 
   const approveUser = useMutation({
     mutationFn: async (approval: PendingApproval) => {
-      // Update profile to approved
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ is_approved: true })
-        .eq('user_id', approval.user_id);
-
-      if (profileError) throw profileError;
-
-      // Update pending approval status
+      // Update pending approval status first
       const { error: approvalError } = await supabase
         .from('pending_approvals')
         .update({
@@ -54,6 +46,21 @@ export function usePendingApprovals() {
         .eq('id', approval.id);
 
       if (approvalError) throw approvalError;
+
+      // Update profile to approved - this is the critical step for login access
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ is_approved: true })
+        .eq('user_id', approval.user_id);
+
+      if (profileError) {
+        // Rollback the approval status if profile update fails
+        await supabase
+          .from('pending_approvals')
+          .update({ status: 'pending', approved_at: null })
+          .eq('id', approval.id);
+        throw profileError;
+      }
 
       return approval;
     },
