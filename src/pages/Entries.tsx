@@ -3,6 +3,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StockEntryForm, EntryItem } from '@/components/stock/StockEntryForm';
 import { MovementsHistory } from '@/components/stock/MovementsHistory';
 import { ImportMovementsDialog, ImportedItem } from '@/components/stock/ImportMovementsDialog';
+import { ImportInvoiceDialog } from '@/components/stock/ImportInvoiceDialog';
 import { ArrowDownToLine } from 'lucide-react';
 
 export default function Entries() {
@@ -38,7 +39,10 @@ export default function Entries() {
               Înregistrează aprovizionări și adaugă produse în stoc
             </p>
           </div>
-          <ImportMovementsDialog type="entry" onImportToList={handleImportToList} />
+          <div className="flex gap-2">
+            <ImportInvoiceDialog onImportToList={handleImportToList} />
+            <ImportMovementsDialog type="entry" onImportToList={handleImportToList} />
+          </div>
         </div>
 
         {/* Entry Form */}
