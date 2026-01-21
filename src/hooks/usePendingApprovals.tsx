@@ -101,35 +101,31 @@ export function usePendingApprovals() {
 
   const deleteUser = useMutation({
     mutationFn: async (approval: PendingApproval) => {
-      // Delete from pending_approvals
-      const { error: approvalError } = await supabase
-        .from('pending_approvals')
-        .delete()
-        .eq('id', approval.id);
+      // Call the edge function to delete user completely (including auth.users)
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ user_id: approval.user_id }),
+        }
+      );
 
-      if (approvalError) throw approvalError;
-
-      // Delete profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('user_id', approval.user_id);
-
-      if (profileError) throw profileError;
-
-      // Delete user roles
-      const { error: rolesError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', approval.user_id);
-
-      if (rolesError) throw rolesError;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete user');
+      }
 
       return approval;
     },
     onSuccess: (approval) => {
       queryClient.invalidateQueries({ queryKey: ['pending-approvals'] });
-      toast.success(`Utilizatorul ${approval.full_name || approval.email} a fost eliminat.`);
+      toast.success(`Utilizatorul ${approval.full_name || approval.email} a fost eliminat complet.`);
     },
     onError: (error) => {
       console.error('Error deleting user:', error);
