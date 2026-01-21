@@ -61,6 +61,48 @@ export type Database = {
           },
         ]
       }
+      inventory_documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          document_number: string
+          id: string
+          items: Json
+          notes: string | null
+          partner: string | null
+          total_value: number | null
+          type: string
+          warehouse: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          document_number: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          partner?: string | null
+          total_value?: number | null
+          type: string
+          warehouse?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          document_number?: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          partner?: string | null
+          total_value?: number | null
+          type?: string
+          warehouse?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           batch_number: string | null

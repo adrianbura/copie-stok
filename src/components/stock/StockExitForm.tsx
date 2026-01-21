@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useProducts } from '@/hooks/useProducts';
 import { useCreateStockMovement } from '@/hooks/useStockMovements';
+import { useCreateInventoryDocument, useNextDocumentNumber, DocumentItem } from '@/hooks/useInventoryDocuments';
 import { Product } from '@/types';
 import { ProductSearchSelect } from './ProductSearchSelect';
 import { CategoryBadge } from '@/components/ui/category-badge';
@@ -34,6 +35,8 @@ export interface ExitItem {
 export function StockExitForm({ onSuccess, externalItems, onItemsChange }: StockExitFormProps) {
   const { data: products } = useProducts();
   const createMovement = useCreateStockMovement();
+  const createDocument = useCreateInventoryDocument();
+  const { data: nextDocNumber } = useNextDocumentNumber('exit');
   
   // Use external items if provided, otherwise use internal state
   const [internalItems, setInternalItems] = useState<ExitItem[]>([]);
@@ -47,10 +50,19 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
   // Global form state
   const [documentNumber, setDocumentNumber] = useState('');
   const [reason, setReason] = useState('Vânzare');
+  const [warehouse, setWarehouse] = useState('Principal');
+  const [partnerName, setPartnerName] = useState('');
   const [notes, setNotes] = useState('');
   const [exitDate, setExitDate] = useState<Date>(new Date());
   
   const [isSaving, setIsSaving] = useState(false);
+
+  // Auto-fill document number
+  useEffect(() => {
+    if (nextDocNumber && !documentNumber) {
+      setDocumentNumber(nextDocNumber);
+    }
+  }, [nextDocNumber, documentNumber]);
 
   const selectedProduct = products?.find((p) => p.id === selectedProductId);
   const requestedQuantity = parseInt(itemQuantity) || 0;
@@ -122,6 +134,8 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
     setIsSaving(true);
     
     try {
+      const documentItems: DocumentItem[] = [];
+      
       // Create all movements
       for (const item of exitItems) {
         await createMovement.mutateAsync({
@@ -132,7 +146,35 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
           notes: `${reason}: ${notes}`.trim(),
           date: exitDate.toISOString(),
         });
+        
+        // Add to document items
+        documentItems.push({
+          product_id: item.product.id,
+          code: item.product.code,
+          name: item.product.name,
+          category: item.product.category,
+          quantity: item.quantity,
+          unit_price: Number(item.product.unit_price),
+        });
       }
+
+      // Calculate total value
+      const totalValue = documentItems.reduce(
+        (sum, item) => sum + item.quantity * (item.unit_price || 0),
+        0
+      );
+
+      // Create inventory document
+      await createDocument.mutateAsync({
+        type: 'exit',
+        document_number: documentNumber,
+        date: exitDate.toISOString(),
+        warehouse: warehouse || undefined,
+        partner: partnerName || undefined,
+        notes: `${reason}: ${notes}`.trim() || undefined,
+        items: documentItems,
+        total_value: totalValue,
+      });
 
       toast.success(`${exitItems.length} ieșiri înregistrate cu succes!`);
       
@@ -140,6 +182,8 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
       setExitItems([]);
       setDocumentNumber('');
       setReason('Vânzare');
+      setWarehouse('Principal');
+      setPartnerName('');
       setNotes('');
       setExitDate(new Date());
       setSelectedProductId('');
@@ -159,6 +203,8 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
     setExitItems([]);
     setDocumentNumber('');
     setReason('Vânzare');
+    setWarehouse('Principal');
+    setPartnerName('');
     setNotes('');
     setExitDate(new Date());
     setSelectedProductId('');
@@ -367,6 +413,26 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="warehouse">Gestiune</Label>
+                <Input
+                  id="warehouse"
+                  placeholder="Ex: Principal"
+                  value={warehouse}
+                  onChange={(e) => setWarehouse(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="partnerName">Beneficiar</Label>
+                <Input
+                  id="partnerName"
+                  placeholder="Ex: Client SRL"
+                  value={partnerName}
+                  onChange={(e) => setPartnerName(e.target.value)}
+                />
               </div>
             </div>
 
