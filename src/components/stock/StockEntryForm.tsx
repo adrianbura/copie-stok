@@ -15,6 +15,7 @@ import { PyroCategory, CATEGORIES } from '@/types';
 import { ArrowDownToLine, Save, X, CalendarIcon, Plus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { ProductSearchSelect } from './ProductSearchSelect';
 
 interface StockEntryFormProps {
   onSuccess?: () => void;
@@ -168,19 +169,12 @@ export function StockEntryForm({ onSuccess }: StockEntryFormProps) {
             {!isNewProduct ? (
               <div className="space-y-2">
                 <Label htmlFor="product">Produs Existent *</Label>
-                <Select value={formData.productId} onValueChange={(value) => setFormData({ ...formData, productId: value })}>
-                  <SelectTrigger><SelectValue placeholder="Selectează produsul" /></SelectTrigger>
-                  <SelectContent className="z-50">
-                    {products?.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        <span className="flex items-center gap-2">
-                          <span className="font-mono text-xs">{product.code}</span>
-                          <span>{product.name}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ProductSearchSelect
+                  products={products}
+                  value={formData.productId}
+                  onSelect={(value) => setFormData({ ...formData, productId: value })}
+                  placeholder="Caută și selectează produsul"
+                />
                 {selectedProduct && <p className="text-xs text-muted-foreground">Stoc actual: {selectedProduct.quantity} buc</p>}
               </div>
             ) : (
