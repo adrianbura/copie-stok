@@ -103,6 +103,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_approvals: {
+        Row: {
+          approval_token: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          approval_token?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          approval_token?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           batch_number: string | null
@@ -169,6 +202,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_approved: boolean
           updated_at: string
           user_id: string
         }
@@ -177,6 +211,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_approved?: boolean
           updated_at?: string
           user_id: string
         }
@@ -185,6 +220,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_approved?: boolean
           updated_at?: string
           user_id?: string
         }
