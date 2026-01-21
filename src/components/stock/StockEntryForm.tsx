@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useProducts, useCreateProduct } from '@/hooks/useProducts';
 import { useCreateStockMovement } from '@/hooks/useStockMovements';
+import { useCreateInventoryDocument, useNextDocumentNumber, DocumentItem } from '@/hooks/useInventoryDocuments';
 import { Product, PyroCategory, CATEGORIES } from '@/types';
 import { ArrowDownToLine, Save, X, CalendarIcon, Plus, Loader2, Package, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,8 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange }: Stoc
   const { data: products } = useProducts();
   const createProduct = useCreateProduct();
   const createMovement = useCreateStockMovement();
+  const createDocument = useCreateInventoryDocument();
+  const { data: nextDocNumber } = useNextDocumentNumber('entry');
   
   // Use external items if provided, otherwise use internal state
   const [internalItems, setInternalItems] = useState<EntryItem[]>([]);
@@ -60,9 +63,18 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange }: Stoc
   // Global form state
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [documentNumber, setDocumentNumber] = useState('');
+  const [warehouse, setWarehouse] = useState('Principal');
+  const [partnerName, setPartnerName] = useState('');
   const [notes, setNotes] = useState('');
   
   const [isSaving, setIsSaving] = useState(false);
+
+  // Auto-fill document number
+  useEffect(() => {
+    if (nextDocNumber && !documentNumber) {
+      setDocumentNumber(nextDocNumber);
+    }
+  }, [nextDocNumber, documentNumber]);
 
   const selectedProduct = products?.find((p) => p.id === selectedProductId);
   const requestedQuantity = parseInt(itemQuantity) || 0;
@@ -146,11 +158,22 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange }: Stoc
       return;
     }
 
+    if (!documentNumber.trim()) {
+      toast.error('Numărul documentului este obligatoriu');
+      return;
+    }
+
     setIsSaving(true);
     
     try {
+      const documentItems: DocumentItem[] = [];
+      
       for (const item of entryItems) {
         let productId = item.product?.id;
+        let productCode = item.product?.code || item.newProductCode!;
+        let productName = item.product?.name || item.newProductName!;
+        let productCategory = item.product?.category || item.category!;
+        let productPrice = item.product?.unit_price || item.unitPrice || 0;
         
         // Create new product if needed
         if (item.isNew && !productId) {
@@ -183,7 +206,35 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange }: Stoc
           notes: notes || undefined,
           date: entryDate.toISOString(),
         });
+        
+        // Add to document items
+        documentItems.push({
+          product_id: productId,
+          code: productCode,
+          name: productName,
+          category: productCategory,
+          quantity: item.quantity,
+          unit_price: Number(productPrice),
+        });
       }
+
+      // Calculate total value
+      const totalValue = documentItems.reduce(
+        (sum, item) => sum + item.quantity * (item.unit_price || 0),
+        0
+      );
+
+      // Create inventory document
+      await createDocument.mutateAsync({
+        type: 'entry',
+        document_number: documentNumber,
+        date: entryDate.toISOString(),
+        warehouse: warehouse || undefined,
+        partner: partnerName || undefined,
+        notes: notes || undefined,
+        items: documentItems,
+        total_value: totalValue,
+      });
 
       const newCount = entryItems.filter(i => i.isNew).length;
       
@@ -194,6 +245,8 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange }: Stoc
       // Reset form
       setEntryItems([]);
       setDocumentNumber('');
+      setWarehouse('Principal');
+      setPartnerName('');
       setNotes('');
       setEntryDate(new Date());
       setSelectedProductId('');
@@ -213,6 +266,8 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange }: Stoc
   const handleReset = () => {
     setEntryItems([]);
     setDocumentNumber('');
+    setWarehouse('Principal');
+    setPartnerName('');
     setNotes('');
     setEntryDate(new Date());
     setSelectedProductId('');
@@ -485,12 +540,33 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange }: Stoc
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="documentNumber">Număr Document</Label>
+                <Label htmlFor="documentNumber">Număr Document *</Label>
                 <Input
                   id="documentNumber"
                   placeholder="Ex: NIR-2024-0157"
                   value={documentNumber}
                   onChange={(e) => setDocumentNumber(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="warehouse">Gestiune</Label>
+                <Input
+                  id="warehouse"
+                  placeholder="Ex: Principal"
+                  value={warehouse}
+                  onChange={(e) => setWarehouse(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="partnerName">Furnizor</Label>
+                <Input
+                  id="partnerName"
+                  placeholder="Ex: PyroTech SRL"
+                  value={partnerName}
+                  onChange={(e) => setPartnerName(e.target.value)}
                 />
               </div>
             </div>
