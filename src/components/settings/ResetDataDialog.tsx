@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ResetDataDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ interface ResetDataDialogProps {
 export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
   const [confirmText, setConfirmText] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+  const queryClient = useQueryClient();
   const [options, setOptions] = useState({
     movements: true,
     products: true,
@@ -98,6 +100,9 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
       toast.success('Datele au fost șterse cu succes');
       onOpenChange(false);
       setConfirmText('');
+      
+      // Clear all cached queries to ensure document numbers reset to 1
+      queryClient.clear();
       
       // Reload to refresh all data
       window.location.reload();
