@@ -1,10 +1,29 @@
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { StockEntryForm } from '@/components/stock/StockEntryForm';
+import { StockEntryForm, EntryItem } from '@/components/stock/StockEntryForm';
 import { MovementsHistory } from '@/components/stock/MovementsHistory';
-import { ImportMovementsDialog } from '@/components/stock/ImportMovementsDialog';
+import { ImportMovementsDialog, ImportedItem } from '@/components/stock/ImportMovementsDialog';
 import { ArrowDownToLine } from 'lucide-react';
 
 export default function Entries() {
+  const [entryItems, setEntryItems] = useState<EntryItem[]>([]);
+
+  const handleImportToList = (items: ImportedItem[]) => {
+    const newItems: EntryItem[] = items.map(item => ({
+      id: item.id,
+      product: item.product,
+      quantity: item.quantity,
+      isNew: item.isNew,
+      newProductName: item.newProductName,
+      newProductCode: item.newProductCode,
+      category: item.category,
+      unitPrice: item.unitPrice,
+      supplier: item.supplier,
+    }));
+    
+    setEntryItems(prev => [...prev, ...newItems]);
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -19,11 +38,14 @@ export default function Entries() {
               Înregistrează aprovizionări și adaugă produse în stoc
             </p>
           </div>
-          <ImportMovementsDialog type="entry" />
+          <ImportMovementsDialog type="entry" onImportToList={handleImportToList} />
         </div>
 
         {/* Entry Form */}
-        <StockEntryForm />
+        <StockEntryForm 
+          externalItems={entryItems} 
+          onItemsChange={setEntryItems} 
+        />
 
         {/* History */}
         <MovementsHistory type="entry" />

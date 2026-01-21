@@ -9,16 +9,29 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useProducts, useUpdateProduct, useCreateProduct } from '@/hooks/useProducts';
-import { useCreateStockMovement } from '@/hooks/useStockMovements';
+import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Database } from '@/integrations/supabase/types';
+import type { Product, PyroCategory } from '@/types';
 
-type PyroCategory = Database['public']['Enums']['pyro_category'];
+type PyroCategoryDB = Database['public']['Enums']['pyro_category'];
 
 interface ImportMovementsDialogProps {
   type: 'entry' | 'exit';
+  onImportToList?: (items: ImportedItem[]) => void;
+}
+
+export interface ImportedItem {
+  id: string;
+  product: Product | null;
+  quantity: number;
+  isNew?: boolean;
+  newProductName?: string;
+  newProductCode?: string;
+  category?: PyroCategory;
+  unitPrice?: number;
+  supplier?: string;
 }
 
 interface ImportRow {
@@ -28,38 +41,34 @@ interface ImportRow {
   reference?: string;
   notes?: string;
   productName?: string;
-  category?: PyroCategory;
+  category?: PyroCategoryDB;
   supplier?: string;
 }
 
 interface ImportResult {
-  success: number;
+  added: number;
   created: number;
   skipped: string[];
   errors: string[];
   totalRows: number;
 }
 
-export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
+export function ImportMovementsDialog({ type, onImportToList }: ImportMovementsDialogProps) {
   const [open, setOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: products } = useProducts();
-  const updateProduct = useUpdateProduct();
-  const createProduct = useCreateProduct();
-  const createMovement = useCreateStockMovement();
 
-  const validCategories: PyroCategory[] = ['F1', 'F2', 'F3', 'F4', 'T1', 'T2'];
+  const validCategories: PyroCategoryDB[] = ['F1', 'F2', 'F3', 'F4', 'T1', 'T2'];
 
   const parseCSV = (text: string): { rows: ImportRow[]; skipped: string[]; totalRows: number } => {
     const lines = text.trim().split('\n');
     const rows: ImportRow[] = [];
     const skipped: string[] = [];
-    const totalRows = lines.length - 1; // exclude header
+    const totalRows = lines.length - 1;
     
-    // Skip header row
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) {
@@ -95,7 +104,7 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
         reference: parts[3] || undefined,
         notes: parts[4] || undefined,
         productName: parts[5] || undefined,
-        category: parts[6] ? (validCategories.includes(parts[6].toUpperCase() as PyroCategory) ? parts[6].toUpperCase() as PyroCategory : 'F2') : undefined,
+        category: parts[6] ? (validCategories.includes(parts[6].toUpperCase() as PyroCategoryDB) ? parts[6].toUpperCase() as PyroCategoryDB : 'F2') : undefined,
         supplier: parts[7] || undefined,
       });
     }
@@ -115,80 +124,68 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
       const { rows, skipped, totalRows } = parseCSV(text);
       
       if (rows.length === 0) {
-        setResult({ success: 0, created: 0, skipped, errors: [], totalRows });
+        setResult({ added: 0, created: 0, skipped, errors: [], totalRows });
         toast.error('Fișierul nu conține date valide pentru import');
         setImporting(false);
         return;
       }
 
-      const importResult: ImportResult = { success: 0, created: 0, skipped, errors: [], totalRows };
+      const importResult: ImportResult = { added: 0, created: 0, skipped, errors: [], totalRows };
+      const itemsToAdd: ImportedItem[] = [];
 
       for (const row of rows) {
-        let product = products?.find(p => 
+        const existingProduct = products?.find(p => 
           p.code.toLowerCase() === row.productCode.toLowerCase()
         );
 
-        // For entries: create the product if it doesn't exist
-        if (!product && type === 'entry') {
-          try {
-            const newProduct = await createProduct.mutateAsync({
-              code: row.productCode,
-              name: row.productName || row.productCode,
-              category: row.category || 'F2',
-              quantity: 0,
-              unit_price: row.unitPrice || 0,
-              min_stock: 10,
-              supplier: row.supplier || null,
-            });
-            product = newProduct;
-            importResult.created++;
-          } catch (error) {
-            importResult.errors.push(`Eroare la crearea produsului ${row.productCode}: ${error}`);
+        if (existingProduct) {
+          // Check stock for exits
+          if (type === 'exit' && existingProduct.quantity < row.quantity) {
+            importResult.errors.push(
+              `Stoc insuficient pentru ${row.productCode}: disponibil ${existingProduct.quantity}, cerut ${row.quantity}`
+            );
             continue;
           }
-        } else if (!product && type === 'exit') {
-          importResult.errors.push(`Produs negăsit: ${row.productCode}`);
-          continue;
-        }
 
-        if (!product) continue;
-
-        if (type === 'exit' && product.quantity < row.quantity) {
-          importResult.errors.push(
-            `Stoc insuficient pentru ${row.productCode}: disponibil ${product.quantity}, cerut ${row.quantity}`
-          );
-          continue;
-        }
-
-        try {
-          // Update product price if provided (for entries)
-          if (type === 'entry' && row.unitPrice !== undefined) {
-            await updateProduct.mutateAsync({
-              id: product.id,
-              unit_price: row.unitPrice,
-            });
-          }
-          
-          await createMovement.mutateAsync({
-            product_id: product.id,
+          itemsToAdd.push({
+            id: crypto.randomUUID(),
+            product: existingProduct,
             quantity: row.quantity,
-            type,
-            reference: row.reference,
-            notes: row.notes,
+            isNew: false,
           });
-          importResult.success++;
-        } catch (error) {
-          importResult.errors.push(`Eroare la ${row.productCode}: ${error}`);
+          importResult.added++;
+        } else if (type === 'entry') {
+          // For entries, create new product entry
+          itemsToAdd.push({
+            id: crypto.randomUUID(),
+            product: null,
+            quantity: row.quantity,
+            isNew: true,
+            newProductCode: row.productCode,
+            newProductName: row.productName || row.productCode,
+            category: (row.category || 'F2') as PyroCategory,
+            unitPrice: row.unitPrice || 0,
+            supplier: row.supplier,
+          });
+          importResult.created++;
+        } else {
+          // For exits, product must exist
+          importResult.errors.push(`Produs negăsit: ${row.productCode}`);
         }
+      }
+
+      // Add items to the temporary list
+      if (itemsToAdd.length > 0 && onImportToList) {
+        onImportToList(itemsToAdd);
       }
 
       setResult(importResult);
       
-      if (importResult.success > 0 || importResult.created > 0) {
+      if (importResult.added > 0 || importResult.created > 0) {
         const messages = [];
-        if (importResult.success > 0) messages.push(`${importResult.success} mișcări importate`);
-        if (importResult.created > 0) messages.push(`${importResult.created} produse noi create`);
-        toast.success(messages.join(', '));
+        if (importResult.added > 0) messages.push(`${importResult.added} produse existente`);
+        if (importResult.created > 0) messages.push(`${importResult.created} produse noi`);
+        toast.success(`Adăugate în listă: ${messages.join(', ')}`);
       }
       
       if (importResult.errors.length > 0) {
@@ -231,7 +228,7 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
             Import {type === 'entry' ? 'Intrări' : 'Ieșiri'} din Fișier
           </DialogTitle>
           <DialogDescription>
-            Importă mișcări de stoc dintr-un fișier CSV
+            Importă produse din CSV în lista temporară pentru verificare
           </DialogDescription>
         </DialogHeader>
 
@@ -245,7 +242,8 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
             </code>
             <p className="text-muted-foreground text-xs">
               Separatori acceptați: virgulă (,) sau punct și virgulă (;)<br />
-              <strong>Produse noi:</strong> La import intrări, produsele inexistente sunt create automat.<br />
+              <strong>Produsele vor fi adăugate în lista temporară</strong> pentru verificare.<br />
+              {type === 'entry' && <><strong>Produse noi:</strong> Produsele inexistente vor fi create automat la salvare.<br /></>}
               Câmpuri obligatorii: cod_produs, cantitate<br />
               Câmpuri opționale: pret_unitar, referinta, note, denumire, categorie (F1-F4, T1-T2), furnizor
             </p>
@@ -285,11 +283,11 @@ export function ImportMovementsDialog({ type }: ImportMovementsDialogProps) {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3 text-success" />
-                    <span>Importate: {result.success}</span>
+                    <span>Produse existente: {result.added}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3 text-primary" />
-                    <span>Produse create: {result.created}</span>
+                    <span>Produse noi: {result.created}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <AlertCircle className="h-3 w-3 text-warning" />

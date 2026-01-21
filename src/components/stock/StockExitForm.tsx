@@ -21,17 +21,24 @@ import { toast } from 'sonner';
 
 interface StockExitFormProps {
   onSuccess?: () => void;
+  externalItems?: ExitItem[];
+  onItemsChange?: (items: ExitItem[]) => void;
 }
 
-interface ExitItem {
+export interface ExitItem {
   id: string;
   product: Product;
   quantity: number;
 }
 
-export function StockExitForm({ onSuccess }: StockExitFormProps) {
+export function StockExitForm({ onSuccess, externalItems, onItemsChange }: StockExitFormProps) {
   const { data: products } = useProducts();
   const createMovement = useCreateStockMovement();
+  
+  // Use external items if provided, otherwise use internal state
+  const [internalItems, setInternalItems] = useState<ExitItem[]>([]);
+  const exitItems = externalItems ?? internalItems;
+  const setExitItems = onItemsChange ?? setInternalItems;
   
   // Form state for adding items
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -42,9 +49,6 @@ export function StockExitForm({ onSuccess }: StockExitFormProps) {
   const [reason, setReason] = useState('Vânzare');
   const [notes, setNotes] = useState('');
   const [exitDate, setExitDate] = useState<Date>(new Date());
-  
-  // Exit items list
-  const [exitItems, setExitItems] = useState<ExitItem[]>([]);
   
   const [isSaving, setIsSaving] = useState(false);
 
@@ -83,6 +87,22 @@ export function StockExitForm({ onSuccess }: StockExitFormProps) {
   // Remove item from the list
   const handleRemoveItem = (itemId: string) => {
     setExitItems(exitItems.filter((item) => item.id !== itemId));
+  };
+
+  // Update item quantity
+  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
+    setExitItems(exitItems.map((item) => {
+      if (item.id === itemId) {
+        // Calculate max available for this product
+        const otherAllocated = exitItems
+          .filter(i => i.product.id === item.product.id && i.id !== itemId)
+          .reduce((sum, i) => sum + i.quantity, 0);
+        const maxAvailable = item.product.quantity - otherAllocated;
+        const validQuantity = Math.max(1, Math.min(newQuantity, maxAvailable));
+        return { ...item, quantity: validQuantity };
+      }
+      return item;
+    }));
   };
 
   // Save all exits
@@ -244,30 +264,44 @@ export function StockExitForm({ onSuccess }: StockExitFormProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {exitItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-mono text-sm">
-                        {item.product.code}
-                      </TableCell>
-                      <TableCell>{item.product.name}</TableCell>
-                      <TableCell>
-                        <CategoryBadge category={item.product.category} size="sm" />
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {item.quantity} buc
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {exitItems.map((item) => {
+                    const otherAllocated = exitItems
+                      .filter(i => i.product.id === item.product.id && i.id !== item.id)
+                      .reduce((sum, i) => sum + i.quantity, 0);
+                    const maxForThis = item.product.quantity - otherAllocated;
+                    
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono text-sm">
+                          {item.product.code}
+                        </TableCell>
+                        <TableCell>{item.product.name}</TableCell>
+                        <TableCell>
+                          <CategoryBadge category={item.product.category} size="sm" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={maxForThis}
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateQuantity(item.id, parseInt(e.target.value) || 1)}
+                            className="w-20 h-8 text-right ml-auto"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
