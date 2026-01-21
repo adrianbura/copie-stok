@@ -27,7 +27,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
-import { Check, X, Clock, UserCheck, UserX, Users, Loader2 } from 'lucide-react';
+import { Check, X, Clock, UserCheck, UserX, Users, Loader2, Trash2 } from 'lucide-react';
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -61,14 +61,18 @@ function UserRow({
   approval, 
   onApprove, 
   onReject,
+  onDelete,
   isApproving,
-  isRejecting 
+  isRejecting,
+  isDeleting
 }: { 
   approval: PendingApproval;
   onApprove: (approval: PendingApproval) => void;
   onReject: (approval: PendingApproval) => void;
+  onDelete: (approval: PendingApproval) => void;
   isApproving: boolean;
   isRejecting: boolean;
+  isDeleting: boolean;
 }) {
   return (
     <TableRow>
@@ -142,10 +146,49 @@ function UserRow({
             </AlertDialog>
           </div>
         )}
-        {approval.status === 'approved' && approval.approved_at && (
-          <span className="text-sm text-muted-foreground">
-            Aprobat la {format(new Date(approval.approved_at), 'dd MMM yyyy', { locale: ro })}
-          </span>
+        {approval.status === 'approved' && (
+          <div className="flex items-center gap-2">
+            {approval.approved_at && (
+              <span className="text-sm text-muted-foreground">
+                Aprobat la {format(new Date(approval.approved_at), 'dd MMM yyyy', { locale: ro })}
+              </span>
+            )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Elimină utilizatorul?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Ești sigur că vrei să elimini utilizatorul{' '}
+                    <strong>{approval.full_name || approval.email}</strong>?
+                    Această acțiune este ireversibilă.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anulează</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onDelete(approval)}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Elimină
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         )}
         {approval.status === 'rejected' && approval.rejected_at && (
           <span className="text-sm text-muted-foreground">
@@ -164,6 +207,7 @@ export default function AdminUsers() {
     isLoading, 
     approveUser, 
     rejectUser,
+    deleteUser,
     pendingCount 
   } = usePendingApprovals();
 
@@ -264,8 +308,10 @@ export default function AdminUsers() {
                       approvals={pendingApprovals}
                       onApprove={(a) => approveUser.mutate(a)}
                       onReject={(a) => rejectUser.mutate(a)}
+                      onDelete={(a) => deleteUser.mutate(a)}
                       isApproving={approveUser.isPending}
                       isRejecting={rejectUser.isPending}
+                      isDeleting={deleteUser.isPending}
                       emptyMessage="Nu există cereri de înregistrare în așteptare."
                     />
                   </TabsContent>
@@ -274,8 +320,10 @@ export default function AdminUsers() {
                       approvals={approvedApprovals}
                       onApprove={(a) => approveUser.mutate(a)}
                       onReject={(a) => rejectUser.mutate(a)}
+                      onDelete={(a) => deleteUser.mutate(a)}
                       isApproving={approveUser.isPending}
                       isRejecting={rejectUser.isPending}
+                      isDeleting={deleteUser.isPending}
                       emptyMessage="Nu există utilizatori aprobați."
                     />
                   </TabsContent>
@@ -284,8 +332,10 @@ export default function AdminUsers() {
                       approvals={rejectedApprovals}
                       onApprove={(a) => approveUser.mutate(a)}
                       onReject={(a) => rejectUser.mutate(a)}
+                      onDelete={(a) => deleteUser.mutate(a)}
                       isApproving={approveUser.isPending}
                       isRejecting={rejectUser.isPending}
+                      isDeleting={deleteUser.isPending}
                       emptyMessage="Nu există utilizatori respinși."
                     />
                   </TabsContent>
@@ -294,8 +344,10 @@ export default function AdminUsers() {
                       approvals={approvals}
                       onApprove={(a) => approveUser.mutate(a)}
                       onReject={(a) => rejectUser.mutate(a)}
+                      onDelete={(a) => deleteUser.mutate(a)}
                       isApproving={approveUser.isPending}
                       isRejecting={rejectUser.isPending}
+                      isDeleting={deleteUser.isPending}
                       emptyMessage="Nu există utilizatori înregistrați."
                     />
                   </TabsContent>
@@ -313,15 +365,19 @@ function UsersTable({
   approvals, 
   onApprove, 
   onReject,
+  onDelete,
   isApproving,
   isRejecting,
+  isDeleting,
   emptyMessage 
 }: { 
   approvals: PendingApproval[];
   onApprove: (approval: PendingApproval) => void;
   onReject: (approval: PendingApproval) => void;
+  onDelete: (approval: PendingApproval) => void;
   isApproving: boolean;
   isRejecting: boolean;
+  isDeleting: boolean;
   emptyMessage: string;
 }) {
   if (approvals.length === 0) {
@@ -349,8 +405,10 @@ function UsersTable({
             approval={approval}
             onApprove={onApprove}
             onReject={onReject}
+            onDelete={onDelete}
             isApproving={isApproving}
             isRejecting={isRejecting}
+            isDeleting={isDeleting}
           />
         ))}
       </TableBody>
