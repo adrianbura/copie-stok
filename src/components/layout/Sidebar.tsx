@@ -13,11 +13,14 @@ import {
   ChevronRight,
   LogOut,
   User,
+  Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { UserSettingsDialog } from '@/components/settings/UserSettingsDialog';
+import { usePendingApprovals } from '@/hooks/usePendingApprovals';
+import { Badge } from '@/components/ui/badge';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -33,6 +36,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { profile, signOut, isAdmin } = useAuth();
+  const { pendingCount } = usePendingApprovals();
 
   return (
     <aside
@@ -86,6 +90,36 @@ export function Sidebar() {
               </Link>
             );
           })}
+
+          {/* Admin Users - only visible to admins */}
+          {isAdmin && (
+            <Link
+              to="/admin/users"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 mt-4 border-t border-sidebar-border pt-4',
+                location.pathname === '/admin/users'
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
+                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+              )}
+            >
+              <Users className={cn('h-5 w-5 flex-shrink-0', location.pathname === '/admin/users' && 'animate-scale-in')} />
+              {!collapsed && (
+                <span className="animate-fade-in flex items-center gap-2">
+                  Utilizatori
+                  {pendingCount > 0 && (
+                    <Badge variant="destructive" className="h-5 min-w-5 p-0 flex items-center justify-center text-xs">
+                      {pendingCount}
+                    </Badge>
+                  )}
+                </span>
+              )}
+              {collapsed && pendingCount > 0 && (
+                <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px]">
+                  {pendingCount}
+                </Badge>
+              )}
+            </Link>
+          )}
         </nav>
 
         {/* User Info & Actions */}
