@@ -28,6 +28,7 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
     movements: true,
     products: true,
     alerts: true,
+    documents: true,
   });
 
   const canReset = confirmText === 'RESET' && Object.values(options).some(Boolean);
@@ -55,6 +56,15 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
           .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
         
         if (alertsError) throw alertsError;
+      }
+
+      if (options.documents) {
+        const { error: documentsError } = await supabase
+          .from('inventory_documents')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        
+        if (documentsError) throw documentsError;
       }
 
       if (options.products) {
@@ -153,6 +163,19 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
                   />
                   <label htmlFor="alerts" className="text-sm cursor-pointer">
                     Alerte
+                  </label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="documents"
+                    checked={options.documents}
+                    onCheckedChange={(checked) => 
+                      setOptions(prev => ({ ...prev, documents: checked as boolean }))
+                    }
+                  />
+                  <label htmlFor="documents" className="text-sm cursor-pointer">
+                    Documente istoric (Intrări și Ieșiri)
                   </label>
                 </div>
               </div>
