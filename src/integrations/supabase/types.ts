@@ -112,6 +112,9 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          rejected_at: string | null
+          rejected_by: string | null
+          status: string
           user_id: string
         }
         Insert: {
@@ -122,6 +125,9 @@ export type Database = {
           email: string
           full_name?: string | null
           id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status?: string
           user_id: string
         }
         Update: {
@@ -132,6 +138,9 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status?: string
           user_id?: string
         }
         Relationships: []

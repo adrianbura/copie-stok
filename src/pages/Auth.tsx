@@ -174,28 +174,7 @@ function SignUpForm({
       return;
     }
 
-    // Send approval notification to admin
-    try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      // Wait a moment for the trigger to create the pending approval
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const { error: notifyError } = await supabase.functions.invoke('send-approval-notification', {
-        body: {
-          user_id: data?.user?.id,
-          email: email,
-          full_name: fullName
-        }
-      });
-
-      if (notifyError) {
-        console.error('Error sending approval notification:', notifyError);
-      }
-    } catch (notifyErr) {
-      console.error('Failed to send approval notification:', notifyErr);
-    }
-
+    // Registration successful - no email needed, admin will approve from app
     setRegistrationComplete(true);
     setIsSubmitting(false);
   };
@@ -219,7 +198,7 @@ function SignUpForm({
               Un administrator va verifica și aproba contul tău în cel mai scurt timp.
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Vei putea accesa aplicația după primirea confirmării prin email.
+              Vei putea accesa aplicația după ce administratorul aprobă contul tău.
             </p>
           </div>
           <div className="text-center text-sm text-muted-foreground">
