@@ -31,43 +31,56 @@ const navigation = [
   { name: 'Alerte', href: '/alerts', icon: Bell },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { profile, signOut, isAdmin } = useAuth();
   const { pendingCount } = usePendingApprovals();
 
+  const handleNavClick = () => {
+    if (onNavigate) {
+      onNavigate();
+    }
+  };
+
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out',
+        'h-full transition-all duration-300 ease-in-out',
         'bg-sidebar border-r border-sidebar-border',
-        collapsed ? 'w-20' : 'w-64'
+        onNavigate ? 'w-full relative' : 'fixed left-0 top-0 z-40 h-screen',
+        !onNavigate && (collapsed ? 'w-20' : 'w-64')
       )}
     >
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3" onClick={handleNavClick}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-fire shadow-glow">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            {!collapsed && (
+            {(!collapsed || onNavigate) && (
               <div className="animate-fade-in">
                 <h1 className="text-lg font-bold text-sidebar-foreground">PyroStock</h1>
                 <p className="text-xs text-sidebar-foreground/60">Management</p>
               </div>
             )}
           </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setCollapsed(!collapsed)}
-            className="h-8 w-8 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-          >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
+          {!onNavigate && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCollapsed(!collapsed)}
+              className="h-8 w-8 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
 
         {/* Navigation */}
@@ -78,6 +91,7 @@ export function Sidebar() {
               <Link
                 key={item.name}
                 to={item.href}
+                onClick={handleNavClick}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                   isActive
@@ -86,7 +100,7 @@ export function Sidebar() {
                 )}
               >
                 <item.icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'animate-scale-in')} />
-                {!collapsed && <span className="animate-fade-in">{item.name}</span>}
+                {(!collapsed || onNavigate) && <span className="animate-fade-in">{item.name}</span>}
               </Link>
             );
           })}
@@ -95,15 +109,16 @@ export function Sidebar() {
           {isAdmin && (
             <Link
               to="/admin/users"
+              onClick={handleNavClick}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 mt-4 border-t border-sidebar-border pt-4',
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 mt-4 border-t border-sidebar-border pt-4 relative',
                 location.pathname === '/admin/users'
                   ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
                   : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
               )}
             >
               <Users className={cn('h-5 w-5 flex-shrink-0', location.pathname === '/admin/users' && 'animate-scale-in')} />
-              {!collapsed && (
+              {(!collapsed || onNavigate) && (
                 <span className="animate-fade-in flex items-center gap-2">
                   Utilizatori
                   {pendingCount > 0 && (
@@ -113,7 +128,7 @@ export function Sidebar() {
                   )}
                 </span>
               )}
-              {collapsed && pendingCount > 0 && (
+              {collapsed && !onNavigate && pendingCount > 0 && (
                 <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px]">
                   {pendingCount}
                 </Badge>
@@ -150,24 +165,27 @@ export function Sidebar() {
             onClick={() => setSettingsOpen(true)}
             className={cn(
               'w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
-              collapsed && 'justify-center px-0'
+              collapsed && !onNavigate && 'justify-center px-0'
             )}
           >
             <Settings className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span>Setări</span>}
+            {(!collapsed || onNavigate) && <span>Setări</span>}
           </Button>
 
           {/* Logout Button */}
           <Button
             variant="ghost"
-            onClick={signOut}
+            onClick={() => {
+              signOut();
+              if (onNavigate) onNavigate();
+            }}
             className={cn(
               'w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
-              collapsed && 'justify-center px-0'
+              collapsed && !onNavigate && 'justify-center px-0'
             )}
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span>Deconectare</span>}
+            {(!collapsed || onNavigate) && <span>Deconectare</span>}
           </Button>
         </div>
 
