@@ -20,6 +20,8 @@ type PyroCategoryDB = Database['public']['Enums']['pyro_category'];
 interface ImportMovementsDialogProps {
   type: 'entry' | 'exit';
   onImportToList?: (items: ImportedItem[]) => void;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
 export interface ImportedItem {
@@ -53,8 +55,10 @@ interface ImportResult {
   totalRows: number;
 }
 
-export function ImportMovementsDialog({ type, onImportToList }: ImportMovementsDialogProps) {
-  const [open, setOpen] = useState(false);
+export function ImportMovementsDialog({ type, onImportToList, externalOpen, onExternalOpenChange }: ImportMovementsDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = onExternalOpenChange || setInternalOpen;
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
