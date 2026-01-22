@@ -3,11 +3,12 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StockEntryForm, EntryItem } from '@/components/stock/StockEntryForm';
 import { MovementsHistory } from '@/components/stock/MovementsHistory';
 import { ImportMovementsDialog, ImportedItem } from '@/components/stock/ImportMovementsDialog';
-import { ImportInvoiceDialog } from '@/components/stock/ImportInvoiceDialog';
+import { ImportInvoiceDialog, InvoiceMetadata } from '@/components/stock/ImportInvoiceDialog';
 import { ArrowDownToLine } from 'lucide-react';
 
 export default function Entries() {
   const [entryItems, setEntryItems] = useState<EntryItem[]>([]);
+  const [invoiceMetadata, setInvoiceMetadata] = useState<InvoiceMetadata | null>(null);
 
   const handleImportToList = (items: ImportedItem[]) => {
     const newItems: EntryItem[] = items.map(item => ({
@@ -25,6 +26,17 @@ export default function Entries() {
     setEntryItems(prev => [...prev, ...newItems]);
   };
 
+  const handleInvoiceImport = (items: EntryItem[], metadata?: InvoiceMetadata) => {
+    setEntryItems(prev => [...prev, ...items]);
+    if (metadata) {
+      setInvoiceMetadata(metadata);
+    }
+  };
+
+  const clearInvoiceMetadata = () => {
+    setInvoiceMetadata(null);
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -40,7 +52,7 @@ export default function Entries() {
             </p>
           </div>
           <div className="flex gap-2">
-            <ImportInvoiceDialog onImportToList={handleImportToList} />
+            <ImportInvoiceDialog onImportToList={handleInvoiceImport} />
             <ImportMovementsDialog type="entry" onImportToList={handleImportToList} />
           </div>
         </div>
@@ -48,7 +60,9 @@ export default function Entries() {
         {/* Entry Form */}
         <StockEntryForm 
           externalItems={entryItems} 
-          onItemsChange={setEntryItems} 
+          onItemsChange={setEntryItems}
+          invoiceMetadata={invoiceMetadata}
+          onMetadataUsed={clearInvoiceMetadata}
         />
 
         {/* History */}

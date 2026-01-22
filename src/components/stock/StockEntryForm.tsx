@@ -19,11 +19,14 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ProductSearchSelect } from './ProductSearchSelect';
 import { CategoryBadge } from '@/components/ui/category-badge';
+import type { InvoiceMetadata } from './ImportInvoiceDialog';
 
 interface StockEntryFormProps {
   onSuccess?: () => void;
   externalItems?: EntryItem[];
   onItemsChange?: (items: EntryItem[]) => void;
+  invoiceMetadata?: InvoiceMetadata | null;
+  onMetadataUsed?: () => void;
 }
 
 export interface EntryItem {
@@ -38,7 +41,7 @@ export interface EntryItem {
   supplier?: string;
 }
 
-export function StockEntryForm({ onSuccess, externalItems, onItemsChange }: StockEntryFormProps) {
+export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoiceMetadata, onMetadataUsed }: StockEntryFormProps) {
   const { data: products } = useProducts();
   const createProduct = useCreateProduct();
   const createMovement = useCreateStockMovement();
@@ -75,6 +78,26 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange }: Stoc
       setDocumentNumber(nextDocNumber);
     }
   }, [nextDocNumber, documentNumber]);
+
+  // Auto-fill from invoice metadata
+  useEffect(() => {
+    if (invoiceMetadata) {
+      if (invoiceMetadata.supplier) {
+        setPartnerName(invoiceMetadata.supplier);
+      }
+      if (invoiceMetadata.invoiceNumber) {
+        setDocumentNumber(invoiceMetadata.invoiceNumber);
+      }
+      if (invoiceMetadata.invoiceDate) {
+        const parsedDate = new Date(invoiceMetadata.invoiceDate);
+        if (!isNaN(parsedDate.getTime())) {
+          setEntryDate(parsedDate);
+        }
+      }
+      // Mark metadata as used
+      onMetadataUsed?.();
+    }
+  }, [invoiceMetadata, onMetadataUsed]);
 
   const selectedProduct = products?.find((p) => p.id === selectedProductId);
   const requestedQuantity = parseInt(itemQuantity) || 0;
