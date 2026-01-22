@@ -3,11 +3,10 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { ProductsTable } from '@/components/products/ProductsTable';
 import { ProductFilters } from '@/components/products/ProductFilters';
 import { ProductDialog } from '@/components/products/ProductDialog';
-import { Button } from '@/components/ui/button';
 import { useProducts, useDeleteProduct } from '@/hooks/useProducts';
 import { useAuth } from '@/hooks/useAuth';
 import { Product, PyroCategory } from '@/types';
-import { Plus, Upload, Download, Package, Loader2 } from 'lucide-react';
+import { Package, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   AlertDialog,
@@ -19,8 +18,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import * as XLSX from 'xlsx';
-import { toast } from 'sonner';
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
@@ -46,11 +43,6 @@ export default function Products() {
 
   const handleClearFilters = () => { setSearchQuery(''); setSelectedCategory('all'); };
 
-  const handleAddProduct = () => {
-    setEditingProduct(null);
-    setDialogOpen(true);
-  };
-
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setDialogOpen(true);
@@ -69,65 +61,43 @@ export default function Products() {
     }
   };
 
-  const handleExport = () => {
-    if (!products || products.length === 0) {
-      toast.error('Nu există produse pentru export');
-      return;
-    }
-
-    const exportData = products.map(product => ({
-      'Cod Produs': product.code,
-      'Denumire': product.name,
-      'Categorie': product.category,
-      'Cantitate': product.quantity,
-      'Preț Unitar': product.unit_price,
-      'Furnizor': product.supplier || '-',
-      'Greutate Netă (kg)': product.net_weight || '-',
-      'Certificare': product.certification || '-',
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Stoc Produse');
-
-    // Auto-size columns
-    const maxWidths = Object.keys(exportData[0]).map(key => 
-      Math.max(key.length, ...exportData.map(row => String(row[key as keyof typeof row]).length))
-    );
-    worksheet['!cols'] = maxWidths.map(w => ({ wch: w + 2 }));
-
-    const date = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(workbook, `stoc_produse_${date}.xlsx`);
-    toast.success('Fișierul Excel a fost exportat cu succes');
-  };
-
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3"><Package className="h-8 w-8 text-primary" />Stoc Produse</h1>
-            <p className="text-muted-foreground mt-1">Gestionează inventarul de produse pirotehnice</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import</Button>
-            <Button variant="outline" className="gap-2" onClick={handleExport}><Download className="h-4 w-4" />Export</Button>
-            {canEdit && (
-              <Button onClick={handleAddProduct} className="gap-2 gradient-fire text-white border-0 shadow-glow">
-                <Plus className="h-4 w-4" />Produs Nou
-              </Button>
-            )}
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <Package className="h-8 w-8 text-primary" />
+            Stoc Produse
+          </h1>
+          <p className="text-muted-foreground mt-1">Gestionează inventarul de produse pirotehnice</p>
         </div>
 
-        <Card><CardHeader className="pb-3"><CardTitle className="text-lg">Filtre</CardTitle></CardHeader><CardContent><ProductFilters searchQuery={searchQuery} onSearchChange={setSearchQuery} selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} onClearFilters={handleClearFilters} /></CardContent></Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Filtre</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProductFilters 
+              searchQuery={searchQuery} 
+              onSearchChange={setSearchQuery} 
+              selectedCategory={selectedCategory} 
+              onCategoryChange={setSelectedCategory} 
+              onClearFilters={handleClearFilters} 
+            />
+          </CardContent>
+        </Card>
 
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">Se afișează <span className="font-semibold text-foreground">{filteredProducts.length}</span> din <span className="font-semibold text-foreground">{products?.length || 0}</span> produse</p>
+          <p className="text-sm text-muted-foreground">
+            Se afișează <span className="font-semibold text-foreground">{filteredProducts.length}</span> din{' '}
+            <span className="font-semibold text-foreground">{products?.length || 0}</span> produse
+          </p>
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         ) : filteredProducts.length > 0 ? (
           <ProductsTable 
             products={filteredProducts} 
@@ -139,12 +109,9 @@ export default function Products() {
             <CardContent className="text-center">
               <Package className="h-12 w-12 mx-auto text-muted-foreground/50" />
               <h3 className="mt-4 text-lg font-semibold">Niciun produs găsit</h3>
-              <p className="text-muted-foreground mt-1">Încearcă să modifici criteriile de căutare sau adaugă un produs nou.</p>
-              {canEdit && (
-                <Button onClick={handleAddProduct} className="mt-4 gap-2">
-                  <Plus className="h-4 w-4" />Adaugă Produs
-                </Button>
-              )}
+              <p className="text-muted-foreground mt-1">
+                Încearcă să modifici criteriile de căutare sau adaugă produse din secțiunea Intrări.
+              </p>
             </CardContent>
           </Card>
         )}
