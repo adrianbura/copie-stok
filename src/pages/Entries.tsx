@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StockEntryForm, EntryItem } from '@/components/stock/StockEntryForm';
 import { MovementsHistory } from '@/components/stock/MovementsHistory';
@@ -6,9 +7,32 @@ import { ImportMovementsDialog, ImportedItem } from '@/components/stock/ImportMo
 import { ImportInvoiceDialog, InvoiceMetadata } from '@/components/stock/ImportInvoiceDialog';
 import { ArrowDownToLine } from 'lucide-react';
 
+interface LocationState {
+  openDialog?: 'importFile' | 'importInvoice';
+}
+
 export default function Entries() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const locationState = location.state as LocationState | null;
+
   const [entryItems, setEntryItems] = useState<EntryItem[]>([]);
   const [invoiceMetadata, setInvoiceMetadata] = useState<InvoiceMetadata | null>(null);
+  const [importFileOpen, setImportFileOpen] = useState(false);
+  const [importInvoiceOpen, setImportInvoiceOpen] = useState(false);
+
+  // Handle navigation state to open dialogs
+  useEffect(() => {
+    if (locationState?.openDialog) {
+      if (locationState.openDialog === 'importFile') {
+        setImportFileOpen(true);
+      } else if (locationState.openDialog === 'importInvoice') {
+        setImportInvoiceOpen(true);
+      }
+      // Clear the state to prevent reopening on subsequent renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [locationState, navigate, location.pathname]);
 
   const handleImportToList = (items: ImportedItem[]) => {
     const newItems: EntryItem[] = items.map(item => ({
@@ -52,8 +76,17 @@ export default function Entries() {
             </p>
           </div>
           <div className="flex gap-2">
-            <ImportInvoiceDialog onImportToList={handleInvoiceImport} />
-            <ImportMovementsDialog type="entry" onImportToList={handleImportToList} />
+            <ImportInvoiceDialog 
+              onImportToList={handleInvoiceImport}
+              externalOpen={importInvoiceOpen}
+              onExternalOpenChange={setImportInvoiceOpen}
+            />
+            <ImportMovementsDialog 
+              type="entry" 
+              onImportToList={handleImportToList}
+              externalOpen={importFileOpen}
+              onExternalOpenChange={setImportFileOpen}
+            />
           </div>
         </div>
 

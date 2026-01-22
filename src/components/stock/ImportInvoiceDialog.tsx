@@ -24,6 +24,8 @@ export interface InvoiceMetadata {
 
 interface ImportInvoiceDialogProps {
   onImportToList: (items: EntryItem[], metadata?: InvoiceMetadata) => void;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
 interface ParsedInvoiceItem {
@@ -41,8 +43,10 @@ interface ParsedInvoice {
   items: ParsedInvoiceItem[];
 }
 
-export function ImportInvoiceDialog({ onImportToList }: ImportInvoiceDialogProps) {
-  const [open, setOpen] = useState(false);
+export function ImportInvoiceDialog({ onImportToList, externalOpen, onExternalOpenChange }: ImportInvoiceDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = onExternalOpenChange || setInternalOpen;
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<{
     invoice: ParsedInvoice | null;

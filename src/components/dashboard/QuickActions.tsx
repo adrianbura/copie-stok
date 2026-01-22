@@ -42,13 +42,17 @@ export function QuickActions() {
               <span className="text-xs">Rapoarte</span>
             </Link>
           </Button>
-          <Button variant="outline" className="h-auto flex-col gap-2 py-4 col-span-1">
-            <Upload className="h-5 w-5 text-muted-foreground" />
-            <span className="text-xs">Import Excel</span>
+          <Button asChild variant="outline" className="h-auto flex-col gap-2 py-4 col-span-1">
+            <Link to="/entries" state={{ openDialog: 'importFile' }}>
+              <Upload className="h-5 w-5 text-muted-foreground" />
+              <span className="text-xs">Import Excel</span>
+            </Link>
           </Button>
-          <Button variant="outline" className="h-auto flex-col gap-2 py-4 col-span-1">
-            <Download className="h-5 w-5 text-muted-foreground" />
-            <span className="text-xs">Export Excel</span>
+          <Button asChild variant="outline" className="h-auto flex-col gap-2 py-4 col-span-1">
+            <Link to="/entries" state={{ openDialog: 'importInvoice' }}>
+              <Download className="h-5 w-5 text-muted-foreground" />
+              <span className="text-xs">Import Factură</span>
+            </Link>
           </Button>
         </div>
       </CardContent>
