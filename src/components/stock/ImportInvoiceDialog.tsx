@@ -16,8 +16,14 @@ import { useProducts } from '@/hooks/useProducts';
 import type { Product, PyroCategory } from '@/types';
 import type { EntryItem } from './StockEntryForm';
 
+export interface InvoiceMetadata {
+  supplier: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+}
+
 interface ImportInvoiceDialogProps {
-  onImportToList: (items: EntryItem[]) => void;
+  onImportToList: (items: EntryItem[], metadata?: InvoiceMetadata) => void;
 }
 
 interface ParsedInvoiceItem {
@@ -139,7 +145,12 @@ export function ImportInvoiceDialog({ onImportToList }: ImportInvoiceDialogProps
       });
 
       if (itemsToAdd.length > 0) {
-        onImportToList(itemsToAdd);
+        const metadata: InvoiceMetadata = {
+          supplier: invoice.supplier || '',
+          invoiceNumber: invoice.invoiceNumber || '',
+          invoiceDate: invoice.invoiceDate || '',
+        };
+        onImportToList(itemsToAdd, metadata);
         toast.success(`${itemsToAdd.length} produse adăugate în listă pentru verificare`);
       }
 
