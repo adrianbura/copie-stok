@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useProducts, useCreateProduct } from '@/hooks/useProducts';
+import { useProducts, useCreateProduct, useWarehouseProducts } from '@/hooks/useProducts';
 import { useCreateStockMovement } from '@/hooks/useStockMovements';
 import { useCreateInventoryDocument, useNextDocumentNumber, DocumentItem } from '@/hooks/useInventoryDocuments';
 import { useWarehouseContext } from '@/hooks/useWarehouse';
@@ -43,12 +43,13 @@ export interface EntryItem {
 }
 
 export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoiceMetadata, onMetadataUsed }: StockEntryFormProps) {
-  const { data: products } = useProducts();
+  const { selectedWarehouse } = useWarehouseContext();
+  const { data: allProducts } = useProducts();
+  const { data: warehouseProducts } = useWarehouseProducts(selectedWarehouse?.id);
   const createProduct = useCreateProduct();
   const createMovement = useCreateStockMovement();
   const createDocument = useCreateInventoryDocument();
   const { data: nextDocNumber } = useNextDocumentNumber('entry');
-  const { selectedWarehouse } = useWarehouseContext();
   
   // Use external items if provided, otherwise use internal state
   const [internalItems, setInternalItems] = useState<EntryItem[]>([]);
@@ -101,7 +102,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
     }
   }, [invoiceMetadata, onMetadataUsed]);
 
-  const selectedProduct = products?.find((p) => p.id === selectedProductId);
+  const selectedProduct = allProducts?.find((p) => p.id === selectedProductId);
   const requestedQuantity = parseInt(itemQuantity) || 0;
 
   // Add item to the list
@@ -342,7 +343,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
                 <div className="space-y-2 sm:col-span-2">
                   <Label>Produs Existent</Label>
                   <ProductSearchSelect
-                    products={products}
+                    products={allProducts}
                     value={selectedProductId}
                     onSelect={setSelectedProductId}
                     placeholder="Caută și selectează produsul"
