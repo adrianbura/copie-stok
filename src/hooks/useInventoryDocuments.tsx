@@ -142,9 +142,17 @@ export function useCreateInventoryDocument() {
       return data;
     },
     onSuccess: (_, variables) => {
+      // Invalidate all document queries for this type (with and without warehouse filter)
       queryClient.invalidateQueries({ queryKey: ['inventory_documents', variables.type] });
+      // Also invalidate with specific warehouse
+      if (variables.warehouse) {
+        queryClient.invalidateQueries({ queryKey: ['inventory_documents', variables.type, variables.warehouse] });
+      }
       // Invalidate next document number so it regenerates
       queryClient.invalidateQueries({ queryKey: ['next_document_number', variables.type] });
+      if (variables.warehouse) {
+        queryClient.invalidateQueries({ queryKey: ['next_document_number', variables.type, variables.warehouse] });
+      }
     },
     onError: (error) => {
       console.error('Error creating document:', error);
