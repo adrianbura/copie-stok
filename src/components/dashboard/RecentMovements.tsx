@@ -1,12 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRecentMovements } from '@/hooks/useStockMovements';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { ArrowDownToLine, ArrowUpFromLine, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 
 export function RecentMovements() {
-  const { data: movements, isLoading } = useRecentMovements(5);
+  const { selectedWarehouse } = useWarehouseContext();
+  const { data: movements, isLoading } = useRecentMovements(5, selectedWarehouse?.id);
 
   return (
     <Card className="col-span-full lg:col-span-2">
