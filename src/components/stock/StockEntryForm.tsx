@@ -274,9 +274,10 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
       if (newCount > 0) message += ` (${newCount} produse noi create)`;
       toast.success(message);
       
-      // Reset form
+      // Reset form - set documentNumber to empty string first
+      // so useEffect will populate it with next number from refreshed query
       setEntryItems([]);
-      setDocumentNumber('');
+      setDocumentNumber(''); 
       setPartnerName('');
       setNotes('');
       setEntryDate(new Date());

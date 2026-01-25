@@ -143,10 +143,16 @@ export function useCreateInventoryDocument() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['inventory_documents', variables.type] });
+      // Invalidate next document number so it regenerates
+      queryClient.invalidateQueries({ queryKey: ['next_document_number', variables.type] });
     },
     onError: (error) => {
       console.error('Error creating document:', error);
-      toast.error('Eroare la salvarea documentului');
+      if (error.message?.includes('unique_document_number_per_type')) {
+        toast.error('Numărul documentului există deja. Se va genera un număr nou.');
+      } else {
+        toast.error('Eroare la salvarea documentului');
+      }
     },
   });
 }
