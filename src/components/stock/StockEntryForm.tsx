@@ -49,7 +49,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
   const createProduct = useCreateProduct();
   const createMovement = useCreateStockMovement();
   const createDocument = useCreateInventoryDocument();
-  const { data: nextDocNumber } = useNextDocumentNumber('entry');
+  const { data: nextDocNumber } = useNextDocumentNumber('entry', selectedWarehouse?.name);
   
   // Use external items if provided, otherwise use internal state
   const [internalItems, setInternalItems] = useState<EntryItem[]>([]);
