@@ -8,13 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useInventoryDocuments, InventoryDocument } from '@/hooks/useInventoryDocuments';
 import { DocumentViewDialog } from './DocumentViewDialog';
 import { FileText, Eye, ArrowDownToLine, ArrowUpFromLine, Loader2 } from 'lucide-react';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 
 interface DocumentHistoryListProps {
   type: 'entry' | 'exit';
 }
 
 export function DocumentHistoryList({ type }: DocumentHistoryListProps) {
-  const { data: documents, isLoading } = useInventoryDocuments(type);
+  const { selectedWarehouse } = useWarehouseContext();
+  const { data: documents, isLoading } = useInventoryDocuments(type, selectedWarehouse?.id);
   const [selectedDocument, setSelectedDocument] = useState<InventoryDocument | null>(null);
 
   const Icon = type === 'entry' ? ArrowDownToLine : ArrowUpFromLine;

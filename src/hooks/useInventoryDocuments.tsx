@@ -53,15 +53,21 @@ function parseItems(items: unknown): DocumentItem[] {
 }
 
 // Fetch all documents by type
-export function useInventoryDocuments(type: 'entry' | 'exit') {
+export function useInventoryDocuments(type: 'entry' | 'exit', warehouseId?: string | null) {
   return useQuery({
-    queryKey: ['inventory_documents', type],
+    queryKey: ['inventory_documents', type, warehouseId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('inventory_documents')
         .select('*')
-        .eq('type', type)
-        .order('date', { ascending: false });
+        .eq('type', type);
+      
+      // Filter by warehouse if provided
+      if (warehouseId) {
+        query = query.eq('warehouse', warehouseId);
+      }
+      
+      const { data, error } = await query.order('date', { ascending: false });
 
       if (error) throw error;
 

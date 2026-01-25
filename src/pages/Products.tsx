@@ -3,7 +3,8 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { ProductsTable } from '@/components/products/ProductsTable';
 import { ProductFilters } from '@/components/products/ProductFilters';
 import { ProductDialog } from '@/components/products/ProductDialog';
-import { useProducts, useDeleteProduct } from '@/hooks/useProducts';
+import { useProducts, useDeleteProduct, useWarehouseProductStats } from '@/hooks/useProducts';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { useAuth } from '@/hooks/useAuth';
 import { Product, PyroCategory } from '@/types';
 import { Package, Loader2 } from 'lucide-react';
@@ -20,7 +21,9 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function Products() {
+  const { selectedWarehouse } = useWarehouseContext();
   const { data: products, isLoading } = useProducts();
+  const { warehouseStock } = useWarehouseProductStats(selectedWarehouse?.id);
   const deleteProduct = useDeleteProduct();
   const { canEdit, isAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,8 +33,24 @@ export default function Products() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
+  // Use warehouse-specific stock if warehouse is selected, otherwise use global products
+  const displayProducts = useMemo(() => {
+    if (selectedWarehouse?.id && warehouseStock) {
+      // Map warehouse_stock to product format with warehouse-specific quantities
+      return warehouseStock
+        .filter((ws: any) => ws.product)
+        .map((ws: any) => ({
+          ...ws.product,
+          quantity: ws.quantity,
+          min_stock: ws.min_stock,
+          location: ws.location || ws.product.location,
+        }));
+    }
+    return products || [];
+  }, [selectedWarehouse, warehouseStock, products]);
+
   const filteredProducts = useMemo(() => {
-    return (products || []).filter((product) => {
+    return displayProducts.filter((product) => {
       const matchesSearch =
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -39,7 +58,7 @@ export default function Products() {
       const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [products, searchQuery, selectedCategory]);
+  }, [displayProducts, searchQuery, selectedCategory]);
 
   const handleClearFilters = () => { setSearchQuery(''); setSelectedCategory('all'); };
 
@@ -90,7 +109,8 @@ export default function Products() {
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Se afișează <span className="font-semibold text-foreground">{filteredProducts.length}</span> din{' '}
-            <span className="font-semibold text-foreground">{products?.length || 0}</span> produse
+            <span className="font-semibold text-foreground">{displayProducts.length}</span> produse
+            {selectedWarehouse && <span className="ml-1">în {selectedWarehouse.name}</span>}
           </p>
         </div>
 
