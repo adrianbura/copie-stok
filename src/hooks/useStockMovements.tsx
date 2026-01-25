@@ -88,6 +88,7 @@ interface CreateMovementInput {
   reference?: string;
   notes?: string;
   date?: string;
+  warehouse_id?: string;
 }
 
 export function useCreateStockMovement() {
@@ -104,6 +105,7 @@ export function useCreateStockMovement() {
           ...movement,
           date: movement.date || new Date().toISOString(),
           created_by: user?.id || null,
+          warehouse_id: movement.warehouse_id || null,
         })
         .select()
         .single();
@@ -114,6 +116,7 @@ export function useCreateStockMovement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stock_movements'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse_stock'] });
       toast.success('Mișcare de stoc înregistrată cu succes!');
     },
     onError: (error) => {

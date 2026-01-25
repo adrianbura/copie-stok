@@ -1,17 +1,23 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useWarehouseContext, Warehouse } from '@/hooks/useWarehouse';
+import { WarehouseSelector } from '@/components/warehouse/WarehouseSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Flame, Clock } from 'lucide-react';
+import { Loader2, Flame, Clock, ArrowLeft, Warehouse as WarehouseIcon } from 'lucide-react';
 import { toast } from 'sonner';
+
+type AuthStep = 'warehouse' | 'login';
 
 export default function Auth() {
   const { user, loading } = useAuth();
+  const { selectedWarehouse, setSelectedWarehouse } = useWarehouseContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authStep, setAuthStep] = useState<AuthStep>(selectedWarehouse ? 'login' : 'warehouse');
 
   if (loading) {
     return (
@@ -24,6 +30,16 @@ export default function Auth() {
   if (user) {
     return <Navigate to="/" replace />;
   }
+
+  const handleWarehouseSelect = (warehouse: Warehouse) => {
+    setSelectedWarehouse(warehouse);
+    setAuthStep('login');
+    toast.success(`Depozit selectat: ${warehouse.name}`);
+  };
+
+  const handleBackToWarehouse = () => {
+    setAuthStep('warehouse');
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
@@ -38,20 +54,56 @@ export default function Auth() {
           </p>
         </div>
 
-        <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Autentificare</TabsTrigger>
-            <TabsTrigger value="signup">Înregistrare</TabsTrigger>
-          </TabsList>
+        {authStep === 'warehouse' ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <WarehouseIcon className="h-5 w-5 text-primary" />
+                Selectează Depozitul
+              </CardTitle>
+              <CardDescription>
+                Alege depozitul în care vei lucra
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WarehouseSelector onSelect={handleWarehouseSelect} />
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Warehouse indicator */}
+            <div className="mb-4 flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToWarehouse}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Schimbă depozitul
+              </Button>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/20">
+                <WarehouseIcon className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">{selectedWarehouse?.name}</span>
+              </div>
+            </div>
 
-          <TabsContent value="login">
-            <LoginForm isSubmitting={isSubmitting} setIsSubmitting={setIsSubmitting} />
-          </TabsContent>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Autentificare</TabsTrigger>
+                <TabsTrigger value="signup">Înregistrare</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="signup">
-            <SignUpForm isSubmitting={isSubmitting} setIsSubmitting={setIsSubmitting} />
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="login">
+                <LoginForm isSubmitting={isSubmitting} setIsSubmitting={setIsSubmitting} />
+              </TabsContent>
+
+              <TabsContent value="signup">
+                <SignUpForm isSubmitting={isSubmitting} setIsSubmitting={setIsSubmitting} />
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
     </div>
   );

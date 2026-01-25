@@ -13,8 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useProducts, useCreateProduct } from '@/hooks/useProducts';
 import { useCreateStockMovement } from '@/hooks/useStockMovements';
 import { useCreateInventoryDocument, useNextDocumentNumber, DocumentItem } from '@/hooks/useInventoryDocuments';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { Product, PyroCategory, CATEGORIES } from '@/types';
-import { ArrowDownToLine, Save, X, CalendarIcon, Plus, Loader2, Package, Trash2 } from 'lucide-react';
+import { ArrowDownToLine, Save, X, CalendarIcon, Plus, Loader2, Package, Trash2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ProductSearchSelect } from './ProductSearchSelect';
@@ -47,6 +48,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
   const createMovement = useCreateStockMovement();
   const createDocument = useCreateInventoryDocument();
   const { data: nextDocNumber } = useNextDocumentNumber('entry');
+  const { selectedWarehouse } = useWarehouseContext();
   
   // Use external items if provided, otherwise use internal state
   const [internalItems, setInternalItems] = useState<EntryItem[]>([]);
@@ -186,6 +188,11 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
       return;
     }
 
+    if (!selectedWarehouse) {
+      toast.error('Nu ai selectat un depozit! Revino la pagina de autentificare.');
+      return;
+    }
+
     setIsSaving(true);
     
     try {
@@ -220,7 +227,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
 
         if (!productId) continue;
 
-        // Create stock movement
+        // Create stock movement with warehouse_id
         await createMovement.mutateAsync({
           product_id: productId,
           type: 'entry',
@@ -228,6 +235,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
           reference: documentNumber || undefined,
           notes: notes || undefined,
           date: entryDate.toISOString(),
+          warehouse_id: selectedWarehouse?.id,
         });
         
         // Add to document items

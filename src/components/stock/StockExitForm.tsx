@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useProducts } from '@/hooks/useProducts';
 import { useCreateStockMovement } from '@/hooks/useStockMovements';
 import { useCreateInventoryDocument, useNextDocumentNumber, DocumentItem } from '@/hooks/useInventoryDocuments';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { Product } from '@/types';
 import { ProductSearchSelect } from './ProductSearchSelect';
 import { CategoryBadge } from '@/components/ui/category-badge';
@@ -37,6 +38,7 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
   const createMovement = useCreateStockMovement();
   const createDocument = useCreateInventoryDocument();
   const { data: nextDocNumber } = useNextDocumentNumber('exit');
+  const { selectedWarehouse } = useWarehouseContext();
   
   // Use external items if provided, otherwise use internal state
   const [internalItems, setInternalItems] = useState<ExitItem[]>([]);
@@ -131,6 +133,11 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
       return;
     }
 
+    if (!selectedWarehouse) {
+      toast.error('Nu ai selectat un depozit! Revino la pagina de autentificare.');
+      return;
+    }
+
     setIsSaving(true);
     
     try {
@@ -145,6 +152,7 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
           reference: documentNumber,
           notes: `${reason}: ${notes}`.trim(),
           date: exitDate.toISOString(),
+          warehouse_id: selectedWarehouse?.id,
         });
         
         // Add to document items
