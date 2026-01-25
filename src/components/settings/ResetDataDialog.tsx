@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 
 interface ResetDataDialogProps {
   open: boolean;
@@ -23,6 +24,7 @@ interface ResetDataDialogProps {
 }
 
 export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
+  const { selectedWarehouse } = useWarehouseContext();
   const [confirmText, setConfirmText] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const queryClient = useQueryClient();
@@ -38,66 +40,73 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
   const handleReset = async () => {
     if (!canReset) return;
     
+    if (!selectedWarehouse) {
+      toast.error('Te rugăm să selectezi un depozit');
+      return;
+    }
+    
     setIsResetting(true);
     
     try {
-      // Delete in order to respect foreign key constraints
+      // Delete warehouse-specific data only
       if (options.movements) {
         const { error: movementsError } = await supabase
           .from('stock_movements')
           .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+          .eq('warehouse_id', selectedWarehouse.id);
         
         if (movementsError) throw movementsError;
       }
 
       if (options.alerts) {
-        const { error: alertsError } = await supabase
-          .from('alerts')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        // Get product IDs from warehouse stock
+        const { data: warehouseStock } = await supabase
+          .from('warehouse_stock')
+          .select('product_id')
+          .eq('warehouse_id', selectedWarehouse.id);
         
-        if (alertsError) throw alertsError;
+        const productIds = warehouseStock?.map(ws => ws.product_id) || [];
+        
+        if (productIds.length > 0) {
+          const { error: alertsError } = await supabase
+            .from('alerts')
+            .delete()
+            .in('product_id', productIds);
+          
+          if (alertsError) throw alertsError;
+        }
       }
 
       if (options.documents) {
         const { error: documentsError } = await supabase
           .from('inventory_documents')
           .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+          .eq('warehouse', selectedWarehouse.id);
         
         if (documentsError) throw documentsError;
       }
 
       if (options.products) {
-        // First delete movements and alerts related to products if not already deleted
+        // Delete warehouse stock entries for this warehouse
+        const { error: warehouseStockError } = await supabase
+          .from('warehouse_stock')
+          .delete()
+          .eq('warehouse_id', selectedWarehouse.id);
+        
+        if (warehouseStockError) throw warehouseStockError;
+        
+        // Delete movements if not already deleted
         if (!options.movements) {
           const { error: movementsError } = await supabase
             .from('stock_movements')
             .delete()
-            .neq('id', '00000000-0000-0000-0000-000000000000');
+            .eq('warehouse_id', selectedWarehouse.id);
           
           if (movementsError) throw movementsError;
         }
-        
-        if (!options.alerts) {
-          const { error: alertsError } = await supabase
-            .from('alerts')
-            .delete()
-            .neq('id', '00000000-0000-0000-0000-000000000000');
-          
-          if (alertsError) throw alertsError;
-        }
-
-        const { error: productsError } = await supabase
-          .from('products')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        if (productsError) throw productsError;
       }
 
-      toast.success('Datele au fost șterse cu succes');
+      toast.success(`Datele din ${selectedWarehouse.name} au fost șterse cu succes`);
       onOpenChange(false);
       setConfirmText('');
       
@@ -125,7 +134,7 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
           <AlertDialogDescription className="text-left space-y-4">
             <p>
               <strong className="text-foreground">Atenție!</strong> Această acțiune este ireversibilă. 
-              Toate datele selectate vor fi șterse permanent.
+              Toate datele selectate din <strong className="text-foreground">{selectedWarehouse?.name}</strong> vor fi șterse permanent.
             </p>
             
             <div className="space-y-3 py-2">
@@ -154,7 +163,7 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
                     }
                   />
                   <label htmlFor="products" className="text-sm cursor-pointer">
-                    Produse (include mișcări și alerte asociate)
+                    Stoc depozit (șterge cantitățile și mișcările din acest depozit)
                   </label>
                 </div>
                 
