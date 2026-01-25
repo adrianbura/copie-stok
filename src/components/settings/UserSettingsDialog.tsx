@@ -9,8 +9,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
-import { Trash2, User, Shield } from 'lucide-react';
+import { Trash2, User, Shield, Building2 } from 'lucide-react';
 import { ResetDataDialog } from './ResetDataDialog';
+import { CompanySettingsDialog } from './CompanySettingsDialog';
 
 interface UserSettingsDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface UserSettingsDialogProps {
 export function UserSettingsDialog({ open, onOpenChange }: UserSettingsDialogProps) {
   const { profile, isAdmin, isOperator } = useAuth();
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
   const canResetData = isAdmin;
 
@@ -60,6 +62,32 @@ export function UserSettingsDialog({ open, onOpenChange }: UserSettingsDialogPro
 
             <Separator />
 
+            {/* Company Settings - Admin only */}
+            {isAdmin && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Setări Firmă
+                </h4>
+                <div className="rounded-lg border p-3 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Configurează datele firmei care apar în antetul documentelor (Aviz, NIR, etc.)
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCompanyDialogOpen(true)}
+                    className="w-full"
+                  >
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Editează Date Firmă
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {isAdmin && <Separator />}
+
             {/* Danger Zone */}
             {canResetData && (
               <div className="space-y-2">
@@ -91,6 +119,11 @@ export function UserSettingsDialog({ open, onOpenChange }: UserSettingsDialogPro
       <ResetDataDialog 
         open={resetDialogOpen} 
         onOpenChange={setResetDialogOpen} 
+      />
+
+      <CompanySettingsDialog
+        open={companyDialogOpen}
+        onOpenChange={setCompanyDialogOpen}
       />
     </>
   );

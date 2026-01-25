@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { InventoryDocument } from '@/hooks/useInventoryDocuments';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { CATEGORIES } from '@/types';
 import { Printer, ArrowDownToLine, ArrowUpFromLine, X, FileText, ClipboardCheck } from 'lucide-react';
 import { generateOrderPrintHTML, generateFulfillmentPrintHTML, generateAvizPrintHTML, printPyroDocument } from './PyroOrderPrintTemplates';
+
 interface DocumentViewDialogProps {
   document: InventoryDocument | null;
   onClose: () => void;
@@ -16,6 +18,7 @@ interface DocumentViewDialogProps {
 
 export function DocumentViewDialog({ document, onClose }: DocumentViewDialogProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const { data: companySettings } = useCompanySettings();
 
   if (!document) return null;
 
@@ -354,7 +357,7 @@ export function DocumentViewDialog({ document, onClose }: DocumentViewDialogProp
             </>
           )}
           
-          <Button onClick={isEntry ? handlePrint : () => printPyroDocument(generateAvizPrintHTML({ document }))} className="gap-2">
+          <Button onClick={isEntry ? handlePrint : () => printPyroDocument(generateAvizPrintHTML({ document, companySettings }))} className="gap-2">
             <Printer className="h-4 w-4" />
             {isEntry ? 'Printează NIR' : 'Printează Aviz'}
           </Button>

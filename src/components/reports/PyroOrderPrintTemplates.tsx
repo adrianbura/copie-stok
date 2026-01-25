@@ -1,10 +1,12 @@
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { InventoryDocument } from '@/hooks/useInventoryDocuments';
+import { CompanySettings } from '@/hooks/useCompanySettings';
 
 interface PrintTemplateProps {
   document: InventoryDocument;
   companyName?: string;
+  companySettings?: CompanySettings | null;
 }
 
 // Generate HTML for "Comandă de Materii Explozive" - Clean vertical table format
@@ -184,11 +186,23 @@ export function generateOrderPrintHTML({ document, companyName = 'ARTIFICII GROU
 }
 
 // Generate HTML for "Aviz de Însoțire a Mărfii" - Full legal Romanian format
-export function generateAvizPrintHTML({ document, companyName = 'ARTIFICII GROUP SRL' }: PrintTemplateProps): string {
+export function generateAvizPrintHTML({ document, companySettings }: PrintTemplateProps): string {
   const eventName = document.notes?.replace(/^[^:]+:\s*/, '') || '-';
   const pyrotechnist = document.partner || '-';
   const totalQuantity = document.items.reduce((sum, item) => sum + item.quantity, 0);
   const totalValue = document.total_value || document.items.reduce((sum, item) => sum + (item.quantity * (item.unit_price || 0)), 0);
+  
+  // Use company settings or defaults
+  const company = {
+    name: companySettings?.company_name || 'FIRMA MEA SRL',
+    registrationNumber: companySettings?.registration_number || 'J40/XXXXX/20XX',
+    cui: companySettings?.cui || 'RO XXXXXXXX',
+    address: companySettings?.address || 'București, Sector X',
+    phone: companySettings?.phone || '',
+    email: companySettings?.email || '',
+    bankName: companySettings?.bank_name || '',
+    bankAccount: companySettings?.bank_account || '',
+  };
   
   return `
     <!DOCTYPE html>
@@ -245,28 +259,20 @@ export function generateAvizPrintHTML({ document, companyName = 'ARTIFICII GROUP
           width: 100%;
           border-collapse: collapse;
           margin: 10px 0;
-          font-size: 9pt;
         }
         th, td {
           border: 1px solid #000;
-          padding: 5px 6px;
+          padding: 6px 8px;
           text-align: left;
-          vertical-align: top;
         }
         th {
           background: #f0f0f0;
           font-weight: bold;
-          text-align: center;
-          font-size: 8pt;
+          font-size: 9pt;
         }
+        td { font-size: 9pt; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        .col-nr { width: 30px; }
-        .col-code { width: 80px; }
-        .col-um { width: 40px; }
-        .col-qty { width: 60px; }
-        .col-price { width: 70px; }
-        .col-value { width: 80px; }
         .total-row { font-weight: bold; background: #f5f5f5; }
         
         .footer-section {
@@ -316,10 +322,11 @@ export function generateAvizPrintHTML({ document, companyName = 'ARTIFICII GROUP
     <body>
       <div class="header-row">
         <div class="company-info">
-          <div class="company-name">${companyName}</div>
-          <div>Nr. Reg. Com.: J40/XXXXX/20XX</div>
-          <div>C.U.I.: RO XXXXXXXX</div>
-          <div>Sediul: București, Sector X</div>
+          <div class="company-name">${company.name}</div>
+          <div>Nr. Reg. Com.: ${company.registrationNumber}</div>
+          <div>C.U.I.: ${company.cui}</div>
+          <div>Sediul: ${company.address}</div>
+          ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
         </div>
         <div class="doc-info">
           <div><strong>Seria:</strong> ${document.document_number.split('-')[0] || 'AV'}</div>
@@ -333,7 +340,7 @@ export function generateAvizPrintHTML({ document, companyName = 'ARTIFICII GROUP
       
       <div class="info-section">
         <div class="info-row">
-          <span><span class="info-label">Furnizor:</span> ${companyName}</span>
+          <span><span class="info-label">Furnizor:</span> ${company.name}</span>
         </div>
         <div class="info-row">
           <span><span class="info-label">Gestiunea:</span> ${document.warehouse || 'Principal'}</span>
@@ -347,13 +354,13 @@ export function generateAvizPrintHTML({ document, companyName = 'ARTIFICII GROUP
       <table>
         <thead>
           <tr>
-            <th class="col-nr">Nr.<br/>crt.</th>
-            <th class="col-code">Cod</th>
+            <th class="text-center" style="width: 40px;">Nr.</th>
+            <th style="white-space: nowrap;">Cod</th>
             <th>Denumirea produsului</th>
-            <th class="col-um">U.M.</th>
-            <th class="col-qty">Cantitate</th>
-            <th class="col-price">Preț unitar<br/>(lei)</th>
-            <th class="col-value">Valoare<br/>(lei)</th>
+            <th class="text-center" style="white-space: nowrap;">U.M.</th>
+            <th class="text-right" style="white-space: nowrap;">Cantitate</th>
+            <th class="text-right" style="white-space: nowrap;">Preț (lei)</th>
+            <th class="text-right" style="white-space: nowrap;">Valoare (lei)</th>
           </tr>
         </thead>
         <tbody>
@@ -362,7 +369,7 @@ export function generateAvizPrintHTML({ document, companyName = 'ARTIFICII GROUP
             return `
               <tr>
                 <td class="text-center">${index + 1}</td>
-                <td>${item.code}</td>
+                <td><code>${item.code}</code></td>
                 <td>${item.name} <small>(${item.category})</small></td>
                 <td class="text-center">buc</td>
                 <td class="text-right">${item.quantity}</td>

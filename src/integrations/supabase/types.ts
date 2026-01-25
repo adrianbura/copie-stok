@@ -61,6 +61,48 @@ export type Database = {
           },
         ]
       }
+      company_settings: {
+        Row: {
+          address: string | null
+          bank_account: string | null
+          bank_name: string | null
+          company_name: string
+          created_at: string
+          cui: string | null
+          email: string | null
+          id: string
+          phone: string | null
+          registration_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          company_name?: string
+          created_at?: string
+          cui?: string | null
+          email?: string | null
+          id?: string
+          phone?: string | null
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          company_name?: string
+          created_at?: string
+          cui?: string | null
+          email?: string | null
+          id?: string
+          phone?: string | null
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_documents: {
         Row: {
           created_at: string
