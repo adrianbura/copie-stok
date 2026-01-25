@@ -139,6 +139,30 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
       return;
     }
 
+    // Validate stock before proceeding
+    const stockErrors: string[] = [];
+    for (const item of exitItems) {
+      const productInWarehouse = products?.find(p => p.id === item.product.id);
+      const availableQty = productInWarehouse?.quantity || 0;
+      
+      // Calculate total requested for this product across all items
+      const totalRequested = exitItems
+        .filter(i => i.product.id === item.product.id)
+        .reduce((sum, i) => sum + i.quantity, 0);
+      
+      if (totalRequested > availableQty) {
+        stockErrors.push(`${item.product.code}: disponibil ${availableQty}, cerut ${totalRequested}`);
+      }
+    }
+    
+    // Remove duplicates from error messages
+    const uniqueErrors = [...new Set(stockErrors)];
+    if (uniqueErrors.length > 0) {
+      toast.error(`Stoc insuficient: ${uniqueErrors.join('; ')}`);
+      setIsSaving(false);
+      return;
+    }
+
     setIsSaving(true);
     
     try {
