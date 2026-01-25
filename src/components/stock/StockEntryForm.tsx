@@ -228,17 +228,6 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
 
         if (!productId) continue;
 
-        // Create stock movement with warehouse_id
-        await createMovement.mutateAsync({
-          product_id: productId,
-          type: 'entry',
-          quantity: item.quantity,
-          reference: documentNumber || undefined,
-          notes: notes || undefined,
-          date: entryDate.toISOString(),
-          warehouse_id: selectedWarehouse?.id,
-        });
-        
         // Add to document items
         documentItems.push({
           product_id: productId,
@@ -256,7 +245,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
         0
       );
 
-      // Create inventory document with the selected warehouse name
+      // Create inventory document FIRST - if this fails, nothing else is saved
       await createDocument.mutateAsync({
         type: 'entry',
         document_number: documentNumber,
@@ -267,6 +256,19 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
         items: documentItems,
         total_value: totalValue,
       });
+
+      // Only create stock movements AFTER document is successfully saved
+      for (const docItem of documentItems) {
+        await createMovement.mutateAsync({
+          product_id: docItem.product_id,
+          type: 'entry',
+          quantity: docItem.quantity,
+          reference: documentNumber || undefined,
+          notes: notes || undefined,
+          date: entryDate.toISOString(),
+          warehouse_id: selectedWarehouse?.id,
+        });
+      }
 
       const newCount = entryItems.filter(i => i.isNew).length;
       
