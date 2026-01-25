@@ -27,7 +27,9 @@ export default function Auth() {
     );
   }
 
-  if (user) {
+  // Only redirect to home if user is authenticated AND has a warehouse selected
+  // This prevents infinite loop when user changes warehouse (clearSelection + redirect to /auth)
+  if (user && selectedWarehouse) {
     return <Navigate to="/" replace />;
   }
 
