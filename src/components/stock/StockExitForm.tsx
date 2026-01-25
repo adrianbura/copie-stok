@@ -167,20 +167,9 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
     
     try {
       const documentItems: DocumentItem[] = [];
-      
-      // Create all movements
+
+      // Prepare document items (don't create movements yet)
       for (const item of exitItems) {
-        await createMovement.mutateAsync({
-          product_id: item.product.id,
-          type: 'exit',
-          quantity: item.quantity,
-          reference: documentNumber,
-          notes: `${reason}: ${notes}`.trim(),
-          date: exitDate.toISOString(),
-          warehouse_id: selectedWarehouse?.id,
-        });
-        
-        // Add to document items
         documentItems.push({
           product_id: item.product.id,
           code: item.product.code,
@@ -197,7 +186,7 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
         0
       );
 
-      // Create inventory document with selected warehouse name
+      // Create inventory document FIRST - if this fails, nothing else is saved
       await createDocument.mutateAsync({
         type: 'exit',
         document_number: documentNumber,
@@ -208,6 +197,19 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
         items: documentItems,
         total_value: totalValue,
       });
+
+      // Only create stock movements AFTER document is successfully saved
+      for (const docItem of documentItems) {
+        await createMovement.mutateAsync({
+          product_id: docItem.product_id,
+          type: 'exit',
+          quantity: docItem.quantity,
+          reference: documentNumber,
+          notes: `${reason}: ${notes}`.trim(),
+          date: exitDate.toISOString(),
+          warehouse_id: selectedWarehouse?.id,
+        });
+      }
 
       toast.success(`${exitItems.length} ieșiri înregistrate cu succes!`);
       
