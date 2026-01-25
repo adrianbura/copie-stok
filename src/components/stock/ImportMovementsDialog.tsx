@@ -9,7 +9,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useProducts } from '@/hooks/useProducts';
+import { useProducts, useWarehouseProducts } from '@/hooks/useProducts';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Database } from '@/integrations/supabase/types';
@@ -63,7 +64,10 @@ export function ImportMovementsDialog({ type, onImportToList, externalOpen, onEx
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { data: products } = useProducts();
+  const { selectedWarehouse } = useWarehouseContext();
+  const { data: allProducts } = useProducts();
+  // For exits, use warehouse-specific products with accurate stock levels
+  const { data: warehouseProducts } = useWarehouseProducts(selectedWarehouse?.id);
 
   const validCategories: PyroCategoryDB[] = ['F1', 'F2', 'F3', 'F4', 'T1', 'T2'];
 
@@ -138,12 +142,15 @@ export function ImportMovementsDialog({ type, onImportToList, externalOpen, onEx
       const itemsToAdd: ImportedItem[] = [];
 
       for (const row of rows) {
-        const existingProduct = products?.find(p => 
+        // For exits, use warehouse-specific products with accurate stock
+        // For entries, use all products catalog
+        const productsToSearch = type === 'exit' ? warehouseProducts : allProducts;
+        const existingProduct = productsToSearch?.find(p => 
           p.code.toLowerCase() === row.productCode.toLowerCase()
         );
 
         if (existingProduct) {
-          // Check stock for exits
+          // Check stock for exits - now using warehouse-specific quantity
           if (type === 'exit' && existingProduct.quantity < row.quantity) {
             importResult.errors.push(
               `Stoc insuficient pentru ${row.productCode}: disponibil ${existingProduct.quantity}, cerut ${row.quantity}`
@@ -173,8 +180,8 @@ export function ImportMovementsDialog({ type, onImportToList, externalOpen, onEx
           });
           importResult.created++;
         } else {
-          // For exits, product must exist
-          importResult.errors.push(`Produs negăsit: ${row.productCode}`);
+          // For exits, product must exist in selected warehouse
+          importResult.errors.push(`Produs negăsit în depozit: ${row.productCode}`);
         }
       }
 
