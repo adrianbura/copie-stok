@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Clock, LogOut } from 'lucide-react';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
+import { Loader2, Clock, LogOut, Warehouse } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -10,8 +11,9 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, profile, loading, signOut } = useAuth();
+  const { selectedWarehouse, isLoading: warehouseLoading } = useWarehouseContext();
 
-  if (loading) {
+  if (loading || warehouseLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -62,6 +64,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         </Card>
       </div>
     );
+  }
+
+  // Check if warehouse is selected
+  if (!selectedWarehouse) {
+    return <Navigate to="/auth" replace />;
   }
 
   return <>{children}</>;
