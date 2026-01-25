@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useProducts } from '@/hooks/useProducts';
@@ -11,6 +10,7 @@ import { FileText, Printer, Download, CalendarIcon, X } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { ProductSearchSelect } from '@/components/stock/ProductSearchSelect';
 
 interface MovementWithStock extends StockMovementWithDetails {
   stockBefore: number;
@@ -289,19 +289,25 @@ export function ProductMovementRegister() {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Selectează Produs</label>
-                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Toate produsele" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toate produsele</SelectItem>
-                    {products?.map(product => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.code} - {product.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <ProductSearchSelect
+                      products={products}
+                      value={selectedProductId === 'all' ? '' : selectedProductId}
+                      onSelect={(id) => setSelectedProductId(id || 'all')}
+                      placeholder="Caută produs sau lasă gol pentru toate"
+                      showStock={false}
+                    />
+                  </div>
+                  {selectedProductId !== 'all' && (
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedProductId('all')} title="Arată toate produsele">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedProductId === 'all' ? 'Se vor afișa toate produsele' : 'Un produs selectat'}
+                </p>
               </div>
 
               <div className="space-y-2">
