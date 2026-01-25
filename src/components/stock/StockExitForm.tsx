@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useProducts } from '@/hooks/useProducts';
+import { useWarehouseProducts } from '@/hooks/useProducts';
 import { useCreateStockMovement } from '@/hooks/useStockMovements';
 import { useCreateInventoryDocument, useNextDocumentNumber, DocumentItem } from '@/hooks/useInventoryDocuments';
 import { useWarehouseContext } from '@/hooks/useWarehouse';
@@ -34,11 +34,12 @@ export interface ExitItem {
 }
 
 export function StockExitForm({ onSuccess, externalItems, onItemsChange }: StockExitFormProps) {
-  const { data: products } = useProducts();
+  const { selectedWarehouse } = useWarehouseContext();
+  const { data: products } = useWarehouseProducts(selectedWarehouse?.id);
   const createMovement = useCreateStockMovement();
   const createDocument = useCreateInventoryDocument();
   const { data: nextDocNumber } = useNextDocumentNumber('exit');
-  const { selectedWarehouse } = useWarehouseContext();
+  
   
   // Use external items if provided, otherwise use internal state
   const [internalItems, setInternalItems] = useState<ExitItem[]>([]);

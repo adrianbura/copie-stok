@@ -76,7 +76,7 @@ export function MovementsHistory({ type = 'all', limit }: MovementsHistoryProps)
     }
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
+  const getSortIcon = (field: SortField) => {
     if (sortField !== field) {
       return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
     }
@@ -139,7 +139,7 @@ export function MovementsHistory({ type = 'all', limit }: MovementsHistoryProps)
                       className="flex items-center hover:text-foreground transition-colors"
                     >
                       Produs
-                      <SortIcon field="product" />
+                      {getSortIcon('product')}
                     </button>
                   </TableHead>
                   <TableHead>Referință</TableHead>
@@ -149,7 +149,7 @@ export function MovementsHistory({ type = 'all', limit }: MovementsHistoryProps)
                       className="flex items-center justify-end w-full hover:text-foreground transition-colors"
                     >
                       Cantitate
-                      <SortIcon field="quantity" />
+                      {getSortIcon('quantity')}
                     </button>
                   </TableHead>
                   <TableHead>
@@ -158,7 +158,7 @@ export function MovementsHistory({ type = 'all', limit }: MovementsHistoryProps)
                       className="flex items-center hover:text-foreground transition-colors"
                     >
                       Data
-                      <SortIcon field="date" />
+                      {getSortIcon('date')}
                     </button>
                   </TableHead>
                 </TableRow>

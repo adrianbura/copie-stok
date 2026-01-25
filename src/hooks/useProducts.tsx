@@ -230,3 +230,47 @@ export function useWarehouseProductStats(warehouseId?: string | null) {
     warehouseStock,
   };
 }
+
+// Hook to get products available in a specific warehouse
+export function useWarehouseProducts(warehouseId?: string | null) {
+  const { data: allProducts } = useProducts();
+  
+  const { data: warehouseStock, isLoading } = useQuery({
+    queryKey: ['warehouse_stock_products', warehouseId],
+    queryFn: async () => {
+      if (!warehouseId) return [];
+      
+      const { data, error } = await supabase
+        .from('warehouse_stock')
+        .select(`
+          quantity,
+          min_stock,
+          location,
+          product:products(*)
+        `)
+        .eq('warehouse_id', warehouseId)
+        .gt('quantity', 0);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!warehouseId,
+  });
+  
+  // If warehouse is selected, return only products with stock in that warehouse
+  if (warehouseId && warehouseStock) {
+    const products = warehouseStock
+      .filter((ws: any) => ws.product)
+      .map((ws: any) => ({
+        ...ws.product,
+        quantity: ws.quantity,
+        min_stock: ws.min_stock,
+        location: ws.location || ws.product.location,
+      })) as Product[];
+    
+    return { data: products, isLoading };
+  }
+  
+  // Fallback to all products if no warehouse selected
+  return { data: allProducts, isLoading: false };
+}
