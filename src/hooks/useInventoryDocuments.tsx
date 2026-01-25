@@ -165,22 +165,27 @@ export function useCreateInventoryDocument() {
   });
 }
 
-// Generate next document number (GLOBAL - not per warehouse, to avoid unique constraint conflicts)
-export function useNextDocumentNumber(type: 'entry' | 'exit', _warehouseName?: string | null) {
+// Generate next document number (per warehouse - constraint is now per warehouse+type)
+export function useNextDocumentNumber(type: 'entry' | 'exit', warehouseName?: string | null) {
   return useQuery({
-    // Keep warehouse in queryKey for cache invalidation purposes, but don't filter by it
-    queryKey: ['next_document_number', type, _warehouseName],
+    queryKey: ['next_document_number', type, warehouseName],
     queryFn: async () => {
       const prefix = type === 'entry' ? 'NIR' : 'AV';
       const year = new Date().getFullYear();
       
-      // Query ALL documents globally (not filtered by warehouse) 
-      // because the unique constraint is global, not per-warehouse
-      const { data, error } = await supabase
+      // Build query - filter by warehouse if provided
+      let query = supabase
         .from('inventory_documents')
         .select('document_number')
         .eq('type', type)
-        .like('document_number', `${prefix}-${year}-%`)
+        .like('document_number', `${prefix}-${year}-%`);
+      
+      // Filter by warehouse to generate warehouse-specific document numbers
+      if (warehouseName) {
+        query = query.eq('warehouse', warehouseName);
+      }
+      
+      const { data, error } = await query
         .order('document_number', { ascending: false })
         .limit(1);
 
