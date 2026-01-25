@@ -17,18 +17,25 @@ export interface StockMovementWithDetails {
   operator_name?: string | null;
 }
 
-export function useStockMovements() {
+export function useStockMovements(warehouseId?: string | null) {
   return useQuery({
-    queryKey: ['stock_movements'],
+    queryKey: ['stock_movements', warehouseId],
     queryFn: async () => {
-      // Fetch movements with product info
-      const { data: movements, error: movementsError } = await supabase
+      // Fetch movements with product info, filtered by warehouse
+      let query = supabase
         .from('stock_movements')
         .select(`
           *,
           product:products(id, code, name, category)
         `)
         .order('date', { ascending: false });
+      
+      // Filter by warehouse if provided
+      if (warehouseId) {
+        query = query.eq('warehouse_id', warehouseId);
+      }
+      
+      const { data: movements, error: movementsError } = await query;
       
       if (movementsError) throw movementsError;
 
@@ -50,11 +57,11 @@ export function useStockMovements() {
   });
 }
 
-export function useRecentMovements(limit: number = 5) {
+export function useRecentMovements(limit: number = 5, warehouseId?: string | null) {
   return useQuery({
-    queryKey: ['stock_movements', 'recent', limit],
+    queryKey: ['stock_movements', 'recent', limit, warehouseId],
     queryFn: async () => {
-      const { data: movements, error: movementsError } = await supabase
+      let query = supabase
         .from('stock_movements')
         .select(`
           *,
@@ -62,6 +69,13 @@ export function useRecentMovements(limit: number = 5) {
         `)
         .order('date', { ascending: false })
         .limit(limit);
+      
+      // Filter by warehouse if provided
+      if (warehouseId) {
+        query = query.eq('warehouse_id', warehouseId);
+      }
+      
+      const { data: movements, error: movementsError } = await query;
       
       if (movementsError) throw movementsError;
 

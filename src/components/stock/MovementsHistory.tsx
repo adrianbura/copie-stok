@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useStockMovements } from '@/hooks/useStockMovements';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { ArrowDownToLine, ArrowUpFromLine, History, Loader2, ArrowUpDown, SortAsc, SortDesc } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -32,7 +33,8 @@ type SortField = 'date' | 'product' | 'quantity';
 type SortOrder = 'asc' | 'desc';
 
 export function MovementsHistory({ type = 'all', limit }: MovementsHistoryProps) {
-  const { data: allMovements, isLoading, refetch } = useStockMovements();
+  const { selectedWarehouse } = useWarehouseContext();
+  const { data: allMovements, isLoading, refetch } = useStockMovements(selectedWarehouse?.id);
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
