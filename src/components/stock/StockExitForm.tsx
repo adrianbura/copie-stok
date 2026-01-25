@@ -52,7 +52,7 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
   // Global form state
   const [documentNumber, setDocumentNumber] = useState('');
   const [reason, setReason] = useState('Vânzare');
-  const [warehouse, setWarehouse] = useState('Principal');
+  // Use selected warehouse name for document storage
   const [partnerName, setPartnerName] = useState('');
   const [notes, setNotes] = useState('');
   const [exitDate, setExitDate] = useState<Date>(new Date());
@@ -172,12 +172,12 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
         0
       );
 
-      // Create inventory document
+      // Create inventory document with selected warehouse name
       await createDocument.mutateAsync({
         type: 'exit',
         document_number: documentNumber,
         date: exitDate.toISOString(),
-        warehouse: warehouse || undefined,
+        warehouse: selectedWarehouse?.name || undefined,
         partner: partnerName || undefined,
         notes: `${reason}: ${notes}`.trim() || undefined,
         items: documentItems,
@@ -190,7 +190,6 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
       setExitItems([]);
       setDocumentNumber('');
       setReason('Vânzare');
-      setWarehouse('Principal');
       setPartnerName('');
       setNotes('');
       setExitDate(new Date());
@@ -211,7 +210,6 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
     setExitItems([]);
     setDocumentNumber('');
     setReason('Vânzare');
-    setWarehouse('Principal');
     setPartnerName('');
     setNotes('');
     setExitDate(new Date());
@@ -429,8 +427,9 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
                 <Input
                   id="warehouse"
                   placeholder="Ex: Principal"
-                  value={warehouse}
-                  onChange={(e) => setWarehouse(e.target.value)}
+                  value={selectedWarehouse?.name || ''}
+                  disabled
+                  className="bg-muted"
                 />
               </div>
 

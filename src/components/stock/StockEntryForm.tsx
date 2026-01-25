@@ -68,7 +68,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
   // Global form state
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [documentNumber, setDocumentNumber] = useState('');
-  const [warehouse, setWarehouse] = useState('Principal');
+  // Use selected warehouse name for document storage
   const [partnerName, setPartnerName] = useState('');
   const [notes, setNotes] = useState('');
   
@@ -255,12 +255,12 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
         0
       );
 
-      // Create inventory document
+      // Create inventory document with the selected warehouse name
       await createDocument.mutateAsync({
         type: 'entry',
         document_number: documentNumber,
         date: entryDate.toISOString(),
-        warehouse: warehouse || undefined,
+        warehouse: selectedWarehouse?.name || undefined,
         partner: partnerName || undefined,
         notes: notes || undefined,
         items: documentItems,
@@ -276,7 +276,6 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
       // Reset form
       setEntryItems([]);
       setDocumentNumber('');
-      setWarehouse('Principal');
       setPartnerName('');
       setNotes('');
       setEntryDate(new Date());
@@ -297,7 +296,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
   const handleReset = () => {
     setEntryItems([]);
     setDocumentNumber('');
-    setWarehouse('Principal');
+    
     setPartnerName('');
     setNotes('');
     setEntryDate(new Date());
@@ -586,8 +585,9 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
                 <Input
                   id="warehouse"
                   placeholder="Ex: Principal"
-                  value={warehouse}
-                  onChange={(e) => setWarehouse(e.target.value)}
+                  value={selectedWarehouse?.name || ''}
+                  disabled
+                  className="bg-muted"
                 />
               </div>
 
