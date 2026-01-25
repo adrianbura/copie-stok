@@ -78,10 +78,11 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
       }
 
       if (options.documents) {
+        // Documents store warehouse NAME, not ID
         const { error: documentsError } = await supabase
           .from('inventory_documents')
           .delete()
-          .eq('warehouse', selectedWarehouse.id);
+          .eq('warehouse', selectedWarehouse.name);
         
         if (documentsError) throw documentsError;
       }
