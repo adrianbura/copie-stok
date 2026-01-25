@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { InventoryDocument } from '@/hooks/useInventoryDocuments';
 import { CATEGORIES } from '@/types';
 import { Printer, ArrowDownToLine, ArrowUpFromLine, X, FileText, ClipboardCheck } from 'lucide-react';
-import { generateOrderPrintHTML, generateFulfillmentPrintHTML, printPyroDocument } from './PyroOrderPrintTemplates';
+import { generateOrderPrintHTML, generateFulfillmentPrintHTML, generateAvizPrintHTML, printPyroDocument } from './PyroOrderPrintTemplates';
 interface DocumentViewDialogProps {
   document: InventoryDocument | null;
   onClose: () => void;
@@ -354,7 +354,7 @@ export function DocumentViewDialog({ document, onClose }: DocumentViewDialogProp
             </>
           )}
           
-          <Button onClick={handlePrint} className="gap-2">
+          <Button onClick={isEntry ? handlePrint : () => printPyroDocument(generateAvizPrintHTML({ document }))} className="gap-2">
             <Printer className="h-4 w-4" />
             {isEntry ? 'Printează NIR' : 'Printează Aviz'}
           </Button>
