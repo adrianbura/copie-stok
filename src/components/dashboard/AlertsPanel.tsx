@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUnacknowledgedAlerts, useAcknowledgeAlert } from '@/hooks/useAlerts';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { AlertTriangle, ShieldAlert, Clock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,8 @@ const alertLabels: Record<AlertType, string> = {
 };
 
 export function AlertsPanel() {
-  const { data: activeAlerts, isLoading } = useUnacknowledgedAlerts();
+  const { selectedWarehouse } = useWarehouseContext();
+  const { data: activeAlerts, isLoading } = useUnacknowledgedAlerts(selectedWarehouse?.id);
 
   return (
     <Card className="col-span-full lg:col-span-1">

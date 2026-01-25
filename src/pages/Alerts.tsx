@@ -2,7 +2,8 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAlerts, useAcknowledgeAlert } from '@/hooks/useAlerts';
-import { useProductStats } from '@/hooks/useProducts';
+import { useWarehouseProductStats } from '@/hooks/useProducts';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { Bell, AlertTriangle, ShieldAlert, Clock, CheckCircle, Package, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -23,8 +24,9 @@ const alertLabels: Record<AlertType, string> = {
 };
 
 export default function Alerts() {
-  const { data: alerts, isLoading } = useAlerts();
-  const { lowStockCount } = useProductStats();
+  const { selectedWarehouse } = useWarehouseContext();
+  const { data: alerts, isLoading } = useAlerts(selectedWarehouse?.id);
+  const { lowStockCount } = useWarehouseProductStats(selectedWarehouse?.id);
   const acknowledgeAlert = useAcknowledgeAlert();
 
   const activeAlerts = alerts?.filter((a) => !a.acknowledged) || [];

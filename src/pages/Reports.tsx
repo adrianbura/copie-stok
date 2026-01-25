@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CATEGORIES } from '@/types';
-import { useProducts, useProductStats } from '@/hooks/useProducts';
+import { useProducts, useWarehouseProductStats } from '@/hooks/useProducts';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { FileSpreadsheet, Download, BarChart3, PieChart, TrendingUp, Package, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { ProductMovementRegister } from '@/components/reports/ProductMovementRegister';
 import { DocumentHistoryList } from '@/components/reports/DocumentHistoryList';
@@ -13,9 +14,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const COLORS = ['#10b981', '#0ea5e9', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export default function Reports() {
+  const { selectedWarehouse } = useWarehouseContext();
   const { data: products } = useProducts();
-  const { totalProducts, totalStockValue, lowStockCount, stockByCategory } = useProductStats();
+  const { totalProducts, totalStockValue, lowStockCount, stockByCategory, warehouseStock } = useWarehouseProductStats(selectedWarehouse?.id);
 
+  // Use warehouse-specific data for charts if available
   const categoryChartData = CATEGORIES.map((cat, index) => ({
     name: `Cat. ${cat.id}`,
     fullName: cat.name,
@@ -23,10 +26,19 @@ export default function Reports() {
     color: COLORS[index],
   }));
 
+  // Calculate value by category using warehouse-specific data
   const valueByCategory = CATEGORIES.map((cat, index) => {
-    const categoryProducts = products?.filter((p) => p.category === cat.id) || [];
-    const value = categoryProducts.reduce((sum, p) => sum + p.quantity * Number(p.unit_price), 0);
-    return { name: `Cat. ${cat.id}`, value: Math.round(value), color: COLORS[index] };
+    if (selectedWarehouse?.id && warehouseStock && warehouseStock.length > 0) {
+      // Use warehouse-specific stock
+      const categoryStock = warehouseStock.filter((ws: any) => ws.product?.category === cat.id);
+      const value = categoryStock.reduce((sum: number, ws: any) => sum + ws.quantity * Number(ws.product?.unit_price || 0), 0);
+      return { name: `Cat. ${cat.id}`, value: Math.round(value), color: COLORS[index] };
+    } else {
+      // Fall back to global products
+      const categoryProducts = products?.filter((p) => p.category === cat.id) || [];
+      const value = categoryProducts.reduce((sum, p) => sum + p.quantity * Number(p.unit_price), 0);
+      return { name: `Cat. ${cat.id}`, value: Math.round(value), color: COLORS[index] };
+    }
   });
 
   return (
@@ -86,7 +98,20 @@ export default function Reports() {
             </div>
 
             {/* Category Details Table */}
-            <Card><CardHeader><CardTitle>Detalii pe Categorii</CardTitle></CardHeader><CardContent><div className="rounded-lg border overflow-hidden"><table className="w-full"><thead><tr className="bg-muted/50"><th className="text-left p-3 font-semibold">Categorie</th><th className="text-left p-3 font-semibold">Descriere</th><th className="text-right p-3 font-semibold">Produse</th><th className="text-right p-3 font-semibold">Cantitate</th><th className="text-right p-3 font-semibold">Valoare</th></tr></thead><tbody>{CATEGORIES.map((cat) => { const catProducts = products?.filter((p) => p.category === cat.id) || []; const catValue = catProducts.reduce((sum, p) => sum + p.quantity * Number(p.unit_price), 0); return (<tr key={cat.id} className="border-t hover:bg-muted/30"><td className="p-3"><span className="flex items-center gap-2"><span>{cat.icon}</span><span className="font-medium">{cat.name}</span></span></td><td className="p-3 text-sm text-muted-foreground">{cat.description}</td><td className="p-3 text-right">{catProducts.length}</td><td className="p-3 text-right font-semibold">{stockByCategory[cat.id] || 0}</td><td className="p-3 text-right font-semibold">{catValue.toLocaleString()} RON</td></tr>); })}</tbody></table></div></CardContent></Card>
+            <Card><CardHeader><CardTitle>Detalii pe Categorii{selectedWarehouse && ` - ${selectedWarehouse.name}`}</CardTitle></CardHeader><CardContent><div className="rounded-lg border overflow-hidden"><table className="w-full"><thead><tr className="bg-muted/50"><th className="text-left p-3 font-semibold">Categorie</th><th className="text-left p-3 font-semibold">Descriere</th><th className="text-right p-3 font-semibold">Produse</th><th className="text-right p-3 font-semibold">Cantitate</th><th className="text-right p-3 font-semibold">Valoare</th></tr></thead><tbody>{CATEGORIES.map((cat) => { 
+              // Use warehouse-specific data if available
+              if (selectedWarehouse?.id && warehouseStock && warehouseStock.length > 0) {
+                const catStock = warehouseStock.filter((ws: any) => ws.product?.category === cat.id);
+                const catQuantity = catStock.reduce((sum: number, ws: any) => sum + ws.quantity, 0);
+                const catValue = catStock.reduce((sum: number, ws: any) => sum + ws.quantity * Number(ws.product?.unit_price || 0), 0);
+                const catProductCount = catStock.filter((ws: any) => ws.quantity > 0).length;
+                return (<tr key={cat.id} className="border-t hover:bg-muted/30"><td className="p-3"><span className="flex items-center gap-2"><span>{cat.icon}</span><span className="font-medium">{cat.name}</span></span></td><td className="p-3 text-sm text-muted-foreground">{cat.description}</td><td className="p-3 text-right">{catProductCount}</td><td className="p-3 text-right font-semibold">{catQuantity}</td><td className="p-3 text-right font-semibold">{catValue.toLocaleString()} RON</td></tr>);
+              }
+              // Fall back to global products
+              const catProducts = products?.filter((p) => p.category === cat.id) || []; 
+              const catValue = catProducts.reduce((sum, p) => sum + p.quantity * Number(p.unit_price), 0); 
+              return (<tr key={cat.id} className="border-t hover:bg-muted/30"><td className="p-3"><span className="flex items-center gap-2"><span>{cat.icon}</span><span className="font-medium">{cat.name}</span></span></td><td className="p-3 text-sm text-muted-foreground">{cat.description}</td><td className="p-3 text-right">{catProducts.length}</td><td className="p-3 text-right font-semibold">{stockByCategory[cat.id] || 0}</td><td className="p-3 text-right font-semibold">{catValue.toLocaleString()} RON</td></tr>); 
+            })}</tbody></table></div></CardContent></Card>
           </TabsContent>
 
           <TabsContent value="entries">

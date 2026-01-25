@@ -4,15 +4,17 @@ import { StockOverview } from '@/components/dashboard/StockOverview';
 import { RecentMovements } from '@/components/dashboard/RecentMovements';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { useProductStats } from '@/hooks/useProducts';
+import { useWarehouseProductStats } from '@/hooks/useProducts';
 import { useAlertStats } from '@/hooks/useAlerts';
 import { useStockMovements } from '@/hooks/useStockMovements';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { Package, TrendingUp, AlertTriangle, FileCheck } from 'lucide-react';
 
 export default function Dashboard() {
-  const { totalProducts, totalStockValue, lowStockCount } = useProductStats();
-  const { unacknowledgedCount } = useAlertStats();
-  const { data: movements } = useStockMovements();
+  const { selectedWarehouse } = useWarehouseContext();
+  const { totalProducts, totalStockValue, lowStockCount } = useWarehouseProductStats(selectedWarehouse?.id);
+  const { unacknowledgedCount } = useAlertStats(selectedWarehouse?.id);
+  const { data: movements } = useStockMovements(selectedWarehouse?.id);
   const recentEntries = movements?.filter((m) => m.type === 'entry').length || 0;
 
   return (
