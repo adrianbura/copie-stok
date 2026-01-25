@@ -158,18 +158,25 @@ export function useCreateInventoryDocument() {
 }
 
 // Generate next document number
-export function useNextDocumentNumber(type: 'entry' | 'exit') {
+export function useNextDocumentNumber(type: 'entry' | 'exit', warehouseName?: string | null) {
   return useQuery({
-    queryKey: ['next_document_number', type],
+    queryKey: ['next_document_number', type, warehouseName],
     queryFn: async () => {
       const prefix = type === 'entry' ? 'NIR' : 'AV';
       const year = new Date().getFullYear();
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('inventory_documents')
         .select('document_number')
         .eq('type', type)
-        .like('document_number', `${prefix}-${year}-%`)
+        .like('document_number', `${prefix}-${year}-%`);
+      
+      // Filter by warehouse to generate warehouse-specific document numbers
+      if (warehouseName) {
+        query = query.eq('warehouse', warehouseName);
+      }
+      
+      const { data, error } = await query
         .order('document_number', { ascending: false })
         .limit(1);
 

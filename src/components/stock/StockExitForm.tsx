@@ -38,7 +38,7 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
   const { data: products } = useWarehouseProducts(selectedWarehouse?.id);
   const createMovement = useCreateStockMovement();
   const createDocument = useCreateInventoryDocument();
-  const { data: nextDocNumber } = useNextDocumentNumber('exit');
+  const { data: nextDocNumber } = useNextDocumentNumber('exit', selectedWarehouse?.name);
   
   
   // Use external items if provided, otherwise use internal state
