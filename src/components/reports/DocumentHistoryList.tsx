@@ -16,7 +16,8 @@ interface DocumentHistoryListProps {
 
 export function DocumentHistoryList({ type }: DocumentHistoryListProps) {
   const { selectedWarehouse } = useWarehouseContext();
-  const { data: documents, isLoading } = useInventoryDocuments(type, selectedWarehouse?.id);
+  // Filter by warehouse name since that's what's stored in the documents
+  const { data: documents, isLoading } = useInventoryDocuments(type, selectedWarehouse?.name || null);
   const [selectedDocument, setSelectedDocument] = useState<InventoryDocument | null>(null);
 
   const Icon = type === 'entry' ? ArrowDownToLine : ArrowUpFromLine;
