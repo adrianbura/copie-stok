@@ -3,9 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Alert } from '@/types';
 import { toast } from 'sonner';
 
-export function useAlerts() {
+export function useAlerts(warehouseId?: string | null) {
   return useQuery({
-    queryKey: ['alerts'],
+    queryKey: ['alerts', warehouseId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('alerts')
@@ -16,14 +16,28 @@ export function useAlerts() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      
+      // If warehouse is selected, filter alerts to only show those for products in that warehouse
+      if (warehouseId) {
+        const { data: warehouseStock } = await supabase
+          .from('warehouse_stock')
+          .select('product_id')
+          .eq('warehouse_id', warehouseId);
+        
+        const warehouseProductIds = new Set(warehouseStock?.map(ws => ws.product_id) || []);
+        
+        return (data as (Alert & { product: { id: string; code: string; name: string } | null })[])
+          .filter(alert => !alert.product_id || warehouseProductIds.has(alert.product_id));
+      }
+      
       return data as (Alert & { product: { id: string; code: string; name: string } | null })[];
     },
   });
 }
 
-export function useUnacknowledgedAlerts() {
+export function useUnacknowledgedAlerts(warehouseId?: string | null) {
   return useQuery({
-    queryKey: ['alerts', 'unacknowledged'],
+    queryKey: ['alerts', 'unacknowledged', warehouseId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('alerts')
@@ -35,6 +49,20 @@ export function useUnacknowledgedAlerts() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      
+      // If warehouse is selected, filter alerts to only show those for products in that warehouse
+      if (warehouseId) {
+        const { data: warehouseStock } = await supabase
+          .from('warehouse_stock')
+          .select('product_id')
+          .eq('warehouse_id', warehouseId);
+        
+        const warehouseProductIds = new Set(warehouseStock?.map(ws => ws.product_id) || []);
+        
+        return (data as (Alert & { product: { id: string; code: string; name: string } | null })[])
+          .filter(alert => !alert.product_id || warehouseProductIds.has(alert.product_id));
+      }
+      
       return data as (Alert & { product: { id: string; code: string; name: string } | null })[];
     },
   });
@@ -69,8 +97,8 @@ export function useAcknowledgeAlert() {
   });
 }
 
-export function useAlertStats() {
-  const { data: alerts } = useAlerts();
+export function useAlertStats(warehouseId?: string | null) {
+  const { data: alerts } = useAlerts(warehouseId);
   
   const unacknowledgedCount = alerts?.filter(a => !a.acknowledged).length ?? 0;
   

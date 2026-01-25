@@ -152,3 +152,81 @@ export function useProductStats() {
     stockByCategory,
   };
 }
+
+// Hook for warehouse-specific product stats
+export function useWarehouseProductStats(warehouseId?: string | null) {
+  const { data: products } = useProducts();
+  
+  const { data: warehouseStock } = useQuery({
+    queryKey: ['warehouse_stock', warehouseId],
+    queryFn: async () => {
+      if (!warehouseId) return [];
+      
+      const { data, error } = await supabase
+        .from('warehouse_stock')
+        .select(`
+          *,
+          product:products(id, code, name, category, unit_price)
+        `)
+        .eq('warehouse_id', warehouseId);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!warehouseId,
+  });
+  
+  // If no warehouse selected, return global stats
+  if (!warehouseId || !warehouseStock) {
+    const totalProducts = products?.length ?? 0;
+    const totalStockValue = products?.reduce((total, product) => {
+      return total + (product.quantity * Number(product.unit_price));
+    }, 0) ?? 0;
+    const lowStockProducts = products?.filter(
+      product => product.quantity <= product.min_stock
+    ) ?? [];
+    const stockByCategory = products?.reduce((acc, product) => {
+      const category = product.category as PyroCategory;
+      acc[category] = (acc[category] || 0) + product.quantity;
+      return acc;
+    }, {} as Record<PyroCategory, number>) ?? {} as Record<PyroCategory, number>;
+    
+    return {
+      totalProducts,
+      totalStockValue,
+      lowStockProducts,
+      lowStockCount: lowStockProducts.length,
+      stockByCategory,
+      warehouseStock: [],
+    };
+  }
+  
+  // Warehouse-specific stats
+  const totalProducts = warehouseStock.filter(ws => ws.quantity > 0).length;
+  
+  const totalStockValue = warehouseStock.reduce((total, ws) => {
+    const unitPrice = Number(ws.product?.unit_price || 0);
+    return total + (ws.quantity * unitPrice);
+  }, 0);
+  
+  const lowStockProducts = warehouseStock.filter(
+    ws => ws.quantity <= ws.min_stock && ws.quantity > 0
+  );
+  
+  const stockByCategory = warehouseStock.reduce((acc, ws) => {
+    const category = ws.product?.category as PyroCategory;
+    if (category) {
+      acc[category] = (acc[category] || 0) + ws.quantity;
+    }
+    return acc;
+  }, {} as Record<PyroCategory, number>);
+  
+  return {
+    totalProducts,
+    totalStockValue,
+    lowStockProducts,
+    lowStockCount: lowStockProducts.length,
+    stockByCategory,
+    warehouseStock,
+  };
+}
