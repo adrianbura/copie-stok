@@ -30,9 +30,10 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
   const queryClient = useQueryClient();
   const [options, setOptions] = useState({
     movements: true,
-    products: true,
+    warehouseStock: true,
     alerts: true,
     documents: true,
+    deleteProducts: false, // Master data - off by default
   });
 
   const canReset = confirmText === 'RESET' && Object.values(options).some(Boolean);
@@ -87,7 +88,7 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
         if (documentsError) throw documentsError;
       }
 
-      if (options.products) {
+      if (options.warehouseStock) {
         // Delete warehouse stock entries for this warehouse
         const { error: warehouseStockError } = await supabase
           .from('warehouse_stock')
@@ -104,6 +105,27 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
             .eq('warehouse_id', selectedWarehouse.id);
           
           if (movementsError) throw movementsError;
+        }
+      }
+
+      if (options.deleteProducts) {
+        // Delete products from the global catalog
+        // First get all product IDs that have stock in this warehouse
+        const { data: warehouseStock } = await supabase
+          .from('warehouse_stock')
+          .select('product_id')
+          .eq('warehouse_id', selectedWarehouse.id);
+        
+        const productIds = warehouseStock?.map(ws => ws.product_id) || [];
+        
+        if (productIds.length > 0) {
+          // Delete these products from the catalog
+          const { error: productsError } = await supabase
+            .from('products')
+            .delete()
+            .in('id', productIds);
+          
+          if (productsError) throw productsError;
         }
       }
 
@@ -157,14 +179,27 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
                 
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="products"
-                    checked={options.products}
+                    id="warehouseStock"
+                    checked={options.warehouseStock}
                     onCheckedChange={(checked) => 
-                      setOptions(prev => ({ ...prev, products: checked as boolean }))
+                      setOptions(prev => ({ ...prev, warehouseStock: checked as boolean }))
                     }
                   />
-                  <label htmlFor="products" className="text-sm cursor-pointer">
-                    Stoc depozit (șterge cantitățile și mișcările din acest depozit)
+                  <label htmlFor="warehouseStock" className="text-sm cursor-pointer">
+                    Stoc depozit (șterge cantitățile din acest depozit)
+                  </label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="deleteProducts"
+                    checked={options.deleteProducts}
+                    onCheckedChange={(checked) => 
+                      setOptions(prev => ({ ...prev, deleteProducts: checked as boolean }))
+                    }
+                  />
+                  <label htmlFor="deleteProducts" className="text-sm cursor-pointer text-destructive font-medium">
+                    ⚠️ Șterge produsele din catalog (master data - ireversibil!)
                   </label>
                 </div>
                 
