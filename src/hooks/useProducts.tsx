@@ -56,6 +56,17 @@ export function useCreateProduct() {
   
   return useMutation({
     mutationFn: async (product: CreateProductInput) => {
+      // Check if product code already exists
+      const { data: existing } = await supabase
+        .from('products')
+        .select('id, code')
+        .eq('code', product.code)
+        .maybeSingle();
+      
+      if (existing) {
+        throw new Error(`DUPLICATE_CODE:${product.code}`);
+      }
+      
       const { data, error } = await supabase
         .from('products')
         .insert(product)
@@ -67,11 +78,20 @@ export function useCreateProduct() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse_stock_products'] });
       toast.success('Produs adăugat cu succes!');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Error creating product:', error);
-      toast.error('Eroare la adăugarea produsului');
+      if (error.message?.startsWith('DUPLICATE_CODE:')) {
+        const code = error.message.split(':')[1];
+        toast.error(`Codul "${code}" există deja! Alege un alt cod pentru produs.`);
+      } else if ((error as any)?.code === '23505') {
+        toast.error('Codul produsului există deja în baza de date!');
+      } else {
+        toast.error('Eroare la adăugarea produsului');
+      }
     },
   });
 }
