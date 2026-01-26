@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ProductSearchSelect } from './ProductSearchSelect';
 import { CategoryBadge } from '@/components/ui/category-badge';
+import { CategorySelector } from '@/components/ui/category-selector';
 import type { InvoiceMetadata } from './ImportInvoiceDialog';
 
 interface StockEntryFormProps {
@@ -170,6 +171,20 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
     setEntryItems(entryItems.map((item) => {
       if (item.id === itemId) {
         return { ...item, quantity: Math.max(1, newQuantity) };
+      }
+      return item;
+    }));
+  };
+
+  // Update item category
+  const handleUpdateCategory = (itemId: string, newCategory: PyroCategory) => {
+    setEntryItems(entryItems.map((item) => {
+      if (item.id === itemId) {
+        if (item.isNew) {
+          return { ...item, category: newCategory };
+        } else if (item.product) {
+          return { ...item, product: { ...item.product, category: newCategory } };
+        }
       }
       return item;
     }));
@@ -505,8 +520,9 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
                         {item.isNew ? item.newProductName : item.product?.name}
                       </TableCell>
                       <TableCell>
-                        <CategoryBadge 
+                        <CategorySelector 
                           category={item.isNew ? item.category! : item.product?.category!} 
+                          onCategoryChange={(newCat) => handleUpdateCategory(item.id, newCat)}
                           size="sm" 
                         />
                       </TableCell>
