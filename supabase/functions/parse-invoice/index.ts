@@ -47,21 +47,28 @@ serve(async (req) => {
     const systemPrompt = `Ești un asistent specializat în extragerea datelor din facturi românești pentru produse pirotehnice.
     
 Analizează textul facturii și extrage:
-1. Numele furnizorului
-2. Numărul facturii
-3. Data facturii (format YYYY-MM-DD)
+1. Numele furnizorului (din secțiunea VANZATOR, câmpul "Nume" sau "Denumire")
+2. Numărul facturii (din câmpul care conține "Nr." sau "Numar factura" sau identificator similar)
+3. Data facturii (format YYYY-MM-DD, din "Data emitere" sau similar)
 4. Lista de produse cu:
-   - Cod produs (dacă există, altfel generează unul bazat pe nume, ex: "PYRO-001")
-   - Denumire produs
-   - Cantitate (număr întreg)
-   - Preț unitar (în RON, fără TVA dacă e posibil)
-   - Categorie pirotehnică (F1, F2, F3, F4, T1, T2) - deduce din denumire sau descriere
+   - Cod produs (dacă există în factură, altfel generează unul bazat pe nume, ex: "PYRO-001")
+   - Denumire produs (din coloana "Nume articol", "Descriere articol" sau "Denumire" - include TOATE textul descriptiv)
+   - Cantitate (din coloana "Cantitate" sau "Cantitate facturata" - NU din "Cantitate de baza")
+   - Preț unitar (din coloana "Pret unitar" sau "Pretul net al articolului" - în RON, fără TVA)
+   - Categorie pirotehnică (F1, F2, F3, F4, T1, T2) - deduce din denumire
+
+REGULI CRITICE PENTRU EXTRAGEREA TABELULUI:
+- Coloana "Cantitate" sau "Cantitate facturata" conține CANTITATEA REALĂ comandată (poate fi zecimală, rotunjește la întreg)
+- NU folosi "Cantitate de baza" care este de obicei 1
+- Denumirea produsului este în prima coloană mare de text după numărul liniei
+- Prețul unitar este în coloana "Pretul net al articolului" sau similar
 
 IMPORTANT:
-- Ignoră pozițiile care nu sunt produse (transport, ambalaj, etc.)
+- Ignoră pozițiile care nu sunt produse (transport, ambalaj, servicii, etc.)
 - Dacă nu poți determina categoria, folosește F2 ca valoare implicită
+- Pentru categorii: calibru mic (1", 1.2") = F2, calibru mare (3", 4", 5", 6") sau baterii = F3
 - Prețurile trebuie să fie numere (fără simbol monetar)
-- Cantitățile trebuie să fie numere întregi pozitive`;
+- Cantitățile trebuie să fie numere întregi pozitive (rotunjește dacă e cazul)`;
 
     const userPrompt = `Analizează această factură și extrage datele structurate:
 
