@@ -51,25 +51,36 @@ Analizează textul facturii și extrage:
 2. Numărul facturii (din câmpul care conține "Nr." sau "Numar factura" sau identificator similar)
 3. Data facturii (format YYYY-MM-DD, din "Data emitere" sau similar)
 4. Lista de produse cu:
-   - Cod produs:
-     * Caută codul REAL al produsului în factură (ex: "FS710", "LBF120", "NS-SMR25", "CLE4030", "SFT9001")
-     * Codul apare de obicei la ÎNCEPUTUL denumirii produsului sau într-o coloană separată "Cod"
-     * Dacă NU găsești un cod explicit, folosește DENUMIREA COMPLETĂ a produsului ca și cod
+   - Cod produs (VEZI REGULILE DE MAI JOS!)
    - Denumire produs (din coloana "Nume articol", "Descriere articol" sau "Denumire" - include TOATE textul descriptiv)
    - Cantitate (din coloana "Cantitate" sau "Cantitate facturata" - NU din "Cantitate de baza")
    - Preț unitar (din coloana "Pret unitar" sau "Pretul net al articolului" - în RON, fără TVA)
    - Categorie pirotehnică (F1, F2, F3, F4, T1, T2) - deduse din denumire
 
-REGULI CRITICE PENTRU COD:
-- Dacă factura are coduri reale (alfanumerice scurte ca "FS710", "LBF120"), folosește-le
-- Dacă NU există cod explicit în factură, codul = denumirea completă a produsului
-- Exemple de coduri reale: "FS710", "FS711", "LBF120", "NS-SMR25", "CLE4030"
-- Exemple când NU există cod: code = "Single Shot calibru 1\" Green Light Tail..." (denumirea completă)
+=== REGULI CRITICE PENTRU CODUL PRODUSULUI ===
 
-REGULI CRITICE PENTRU EXTRAGEREA TABELULUI:
-- Coloana "Cantitate" sau "Cantitate facturata" conține CANTITATEA REALĂ comandată (poate fi zecimală, rotunjește la întreg)
+PASUL 1: Caută un COD REAL în factură. Un cod real are aceste caracteristici:
+- Este SCURT (2-15 caractere)
+- Este ALFANUMERIC (conține litere și/sau cifre, poate avea cratimă)
+- Apare într-o coloană separată numită "Cod", "Cod produs", "Cod articol" SAU la începutul denumirii
+- Exemple de coduri REALE: "FS710", "FS711", "LBF120", "NS-SMR25", "CLE4030", "SFT9001", "ABC123", "X-100"
+
+PASUL 2: Dacă găsești un cod real → folosește-l ca valoare pentru "code"
+         Dacă NU găsești un cod real → folosește DENUMIREA COMPLETĂ a produsului ca "code"
+
+EXEMPLE CONCRETE:
+- Factură cu coloană "Cod" = "FS710" și denumire = "Artificii F2" → code: "FS710"
+- Factură cu denumire = "FS711 - Petarde mici 50 buc" → code: "FS711" (codul e la început)
+- Factură FĂRĂ cod, doar denumire = "Single Shot calibru 1\" Green..." → code: "Single Shot calibru 1\" Green..." (copiază denumirea)
+
+NU CONFUNDA:
+- "150buc", "72buc", "100buc" NU sunt coduri, sunt cantități în ambalaj
+- "30mm", "1\"", "4\"" NU sunt coduri, sunt dimensiuni
+- Numerele de ordine din tabel (1, 2, 3...) NU sunt coduri
+
+=== REGULI PENTRU EXTRAGEREA TABELULUI ===
+- Coloana "Cantitate" sau "Cantitate facturata" conține CANTITATEA REALĂ comandată
 - NU folosi "Cantitate de baza" care este de obicei 1
-- Denumirea produsului este în prima coloană mare de text după numărul liniei
 - Prețul unitar este în coloana "Pretul net al articolului" sau similar
 
 IMPORTANT:
