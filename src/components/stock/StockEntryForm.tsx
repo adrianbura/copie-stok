@@ -214,6 +214,9 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
     try {
       const documentItems: DocumentItem[] = [];
       
+      // Track codes we're creating to avoid duplicates in this batch
+      const codesCreatedInBatch = new Set<string>();
+      
       for (const item of entryItems) {
         let productId = item.product?.id;
         let productCode = item.product?.code || item.newProductCode!;
@@ -223,8 +226,24 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
         
         // Create new product if needed
         if (item.isNew && !productId) {
+          let finalCode = item.newProductCode!;
+          
+          // Check if code already exists in DB or in this batch
+          const existingInDb = allProducts?.find(p => p.code.toLowerCase() === finalCode.toLowerCase());
+          const existsInBatch = codesCreatedInBatch.has(finalCode.toLowerCase());
+          
+          if (existingInDb || existsInBatch) {
+            // Generate unique suffix based on timestamp and random string
+            const uniqueSuffix = Date.now().toString(36).slice(-4).toUpperCase() + 
+                                Math.random().toString(36).slice(2, 4).toUpperCase();
+            finalCode = `${finalCode}-${uniqueSuffix}`;
+          }
+          
+          codesCreatedInBatch.add(finalCode.toLowerCase());
+          productCode = finalCode;
+          
           const newProduct = await createProduct.mutateAsync({
-            code: item.newProductCode!,
+            code: finalCode,
             name: item.newProductName!,
             category: item.category!,
             quantity: 0,
