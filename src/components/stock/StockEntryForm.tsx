@@ -323,8 +323,23 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
       
       onSuccess?.();
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Eroare la salvarea intrărilor');
+      console.error('Error saving entries:', error);
+
+      const message = error instanceof Error ? error.message : String(error);
+
+      // Surface common, actionable causes instead of a generic toast
+      if (message.startsWith('DUPLICATE_CODE:')) {
+        const code = message.split(':')[1] || '';
+        toast.error(`Codul "${code}" există deja. Se va genera automat un cod unic dacă reîncerci.`);
+        return;
+      }
+
+      if (message.includes('unique_document_number_per_type') || message.toLowerCase().includes('document_number')) {
+        toast.error('Numărul documentului există deja. Schimbă numărul documentului și încearcă din nou.');
+        return;
+      }
+
+      toast.error('Eroare la salvarea intrărilor. Verifică numărul documentului și produsele noi.');
     } finally {
       setIsSaving(false);
     }
