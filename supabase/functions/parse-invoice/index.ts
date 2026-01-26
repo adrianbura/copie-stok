@@ -51,25 +51,20 @@ Analizează textul facturii și extrage:
 2. Numărul facturii (din câmpul care conține "Nr." sau "Numar factura" sau identificator similar)
 3. Data facturii (format YYYY-MM-DD, din "Data emitere" sau similar)
 4. Lista de produse cu:
-   - Cod produs - EXTRAGE codul REAL al produsului din factură:
-     * Codul apare de obicei la ÎNCEPUTUL denumirii produsului (ex: "FS710", "LBF120", "NS-SMR25", "CLE4030", "SFT9001")
-     * Poate fi în format: litere+cifre (FS710), litere-litere+cifre (NS-SMR25), sau similar
-     * Dacă NU găsești un cod explicit în text, GENEREAZĂ un cod UNIC bazat pe:
-       - Primele 2-3 caractere din tip (SS pentru Single Shot, BAT pentru Baterie, BMB pentru Bombita)
-       - PLUS un index secvențial unic pentru fiecare produs (ex: SS-001, SS-002, BAT-001, BMB-001)
-       - PLUS ultimele 3-4 caractere din denumire pentru unicitate (ex: SS-001-MINE, BAT-002-30F)
-     * FIECARE produs trebuie să aibă un cod UNIC - nu repeta niciodată același cod!
+   - Cod produs:
+     * Caută codul REAL al produsului în factură (ex: "FS710", "LBF120", "NS-SMR25", "CLE4030", "SFT9001")
+     * Codul apare de obicei la ÎNCEPUTUL denumirii produsului sau într-o coloană separată "Cod"
+     * Dacă NU găsești un cod explicit, folosește DENUMIREA COMPLETĂ a produsului ca și cod
    - Denumire produs (din coloana "Nume articol", "Descriere articol" sau "Denumire" - include TOATE textul descriptiv)
    - Cantitate (din coloana "Cantitate" sau "Cantitate facturata" - NU din "Cantitate de baza")
    - Preț unitar (din coloana "Pret unitar" sau "Pretul net al articolului" - în RON, fără TVA)
    - Categorie pirotehnică (F1, F2, F3, F4, T1, T2) - deduse din denumire
 
-REGULI CRITICE PENTRU EXTRAGEREA CODULUI:
-- Preferă codul REAL din factură dacă există
-- Exemple de coduri reale: "FS710", "FS711", "LBF120", "NS-SMR25", "CLE4030", "SFT9001", "HXMF1250"
-- Dacă nu există cod explicit, generează unul UNIC pentru fiecare produs
-- NICIODATĂ nu folosi același cod pentru produse diferite!
-- Pentru facturi fără coduri, folosește format: TIP-INDEX-SUFFIX (ex: SS-001-GLTTL, BAT-001-90F)
+REGULI CRITICE PENTRU COD:
+- Dacă factura are coduri reale (alfanumerice scurte ca "FS710", "LBF120"), folosește-le
+- Dacă NU există cod explicit în factură, codul = denumirea completă a produsului
+- Exemple de coduri reale: "FS710", "FS711", "LBF120", "NS-SMR25", "CLE4030"
+- Exemple când NU există cod: code = "Single Shot calibru 1\" Green Light Tail..." (denumirea completă)
 
 REGULI CRITICE PENTRU EXTRAGEREA TABELULUI:
 - Coloana "Cantitate" sau "Cantitate facturata" conține CANTITATEA REALĂ comandată (poate fi zecimală, rotunjește la întreg)
