@@ -17,7 +17,7 @@ export interface PendingApproval {
 }
 
 export function usePendingApprovals() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: approvals = [], isLoading, error } = useQuery({
@@ -35,19 +35,20 @@ export function usePendingApprovals() {
   });
 
   const approveUser = useMutation({
-    mutationFn: async (approval: PendingApproval) => {
+    mutationFn: async ({ approval, warehouseIds }: { approval: PendingApproval; warehouseIds: string[] }) => {
       // Update pending approval status first
       const { error: approvalError } = await supabase
         .from('pending_approvals')
         .update({
           status: 'approved',
           approved_at: new Date().toISOString(),
+          approved_by: user?.id,
         })
         .eq('id', approval.id);
 
       if (approvalError) throw approvalError;
 
-      // Update profile to approved - this is the critical step for login access
+      // Update profile to approved
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ is_approved: true })
@@ -57,16 +58,38 @@ export function usePendingApprovals() {
         // Rollback the approval status if profile update fails
         await supabase
           .from('pending_approvals')
-          .update({ status: 'pending', approved_at: null })
+          .update({ status: 'pending', approved_at: null, approved_by: null })
           .eq('id', approval.id);
         throw profileError;
       }
 
-      return approval;
+      // Assign warehouse access
+      if (warehouseIds.length > 0) {
+        const { error: warehouseError } = await supabase
+          .from('user_warehouses')
+          .insert(
+            warehouseIds.map(warehouseId => ({
+              user_id: approval.user_id,
+              warehouse_id: warehouseId,
+              granted_by: user?.id,
+            }))
+          );
+
+        if (warehouseError) {
+          console.error('Error assigning warehouses:', warehouseError);
+          // Don't rollback - user is approved but we log the warehouse assignment error
+        }
+      }
+
+      return { approval, warehouseIds };
     },
-    onSuccess: (approval) => {
+    onSuccess: ({ approval, warehouseIds }) => {
       queryClient.invalidateQueries({ queryKey: ['pending-approvals'] });
-      toast.success(`Utilizatorul ${approval.full_name || approval.email} a fost aprobat!`);
+      queryClient.invalidateQueries({ queryKey: ['user-warehouses', approval.user_id] });
+      const warehouseText = warehouseIds.length === 1 
+        ? '1 depozit' 
+        : `${warehouseIds.length} depozite`;
+      toast.success(`Utilizatorul ${approval.full_name || approval.email} a fost aprobat cu acces la ${warehouseText}!`);
     },
     onError: (error) => {
       console.error('Error approving user:', error);

@@ -1,8 +1,9 @@
-import { useWarehouseContext, Warehouse } from '@/hooks/useWarehouse';
+import { useWarehouseContext, useAllowedWarehouses, Warehouse } from '@/hooks/useWarehouse';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Warehouse as WarehouseIcon, MapPin, Loader2 } from 'lucide-react';
+import { Warehouse as WarehouseIcon, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface WarehouseSelectorProps {
   onSelect?: (warehouse: Warehouse) => void;
@@ -10,7 +11,8 @@ interface WarehouseSelectorProps {
 }
 
 export function WarehouseSelector({ onSelect, className }: WarehouseSelectorProps) {
-  const { warehouses, isLoading, setSelectedWarehouse } = useWarehouseContext();
+  const { setSelectedWarehouse } = useWarehouseContext();
+  const { data: allowedWarehouses = [], isLoading, isError } = useAllowedWarehouses();
 
   const handleSelect = (warehouse: Warehouse) => {
     setSelectedWarehouse(warehouse);
@@ -25,17 +27,33 @@ export function WarehouseSelector({ onSelect, className }: WarehouseSelectorProp
     );
   }
 
-  if (warehouses.length === 0) {
+  if (isError) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        Nu există depozite configurate.
+      <Alert variant="destructive" className="max-w-md mx-auto">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Eroare la încărcarea depozitelor. Reîncarcă pagina.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (allowedWarehouses.length === 0) {
+    return (
+      <div className="text-center py-8 space-y-2">
+        <p className="text-muted-foreground">
+          Nu ai acces la niciun depozit.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Contactează administratorul pentru a primi acces.
+        </p>
       </div>
     );
   }
 
   return (
     <div className={cn("grid gap-4", className)}>
-      {warehouses.map((warehouse) => (
+      {allowedWarehouses.map((warehouse) => (
         <Card
           key={warehouse.id}
           className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md"

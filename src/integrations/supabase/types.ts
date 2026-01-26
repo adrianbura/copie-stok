@@ -352,6 +352,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_warehouses: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          user_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id: string
+          warehouse_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_warehouses_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouse_stock: {
         Row: {
           created_at: string
@@ -450,6 +482,10 @@ export type Database = {
         Returns: boolean
       }
       is_authenticated: { Args: never; Returns: boolean }
+      user_has_warehouse_access: {
+        Args: { _user_id: string; _warehouse_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       alert_type: "expiry" | "low_stock" | "compliance"
