@@ -113,7 +113,7 @@ export function useWarehouseContext() {
   return context;
 }
 
-// Query hooks
+// Query hooks - returns all active warehouses (for admins and selectors)
 export function useWarehouses() {
   return useQuery({
     queryKey: ['warehouses'],
@@ -127,6 +127,40 @@ export function useWarehouses() {
       if (error) throw error;
       return data as Warehouse[];
     },
+  });
+}
+
+// Returns warehouses filtered by user permissions
+export function useAllowedWarehouses() {
+  const { data: allWarehouses = [], isLoading: warehousesLoading } = useWarehouses();
+  
+  return useQuery({
+    queryKey: ['allowed-warehouses', allWarehouses.map(w => w.id)],
+    queryFn: async () => {
+      // First check if user is admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      // Check admin status
+      const { data: isAdminData } = await supabase
+        .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      
+      if (isAdminData) {
+        return allWarehouses;
+      }
+
+      // Get user's allowed warehouse IDs
+      const { data: userWarehouses, error } = await supabase
+        .from('user_warehouses')
+        .select('warehouse_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const allowedIds = userWarehouses.map(uw => uw.warehouse_id);
+      return allWarehouses.filter(w => allowedIds.includes(w.id));
+    },
+    enabled: !warehousesLoading && allWarehouses.length > 0,
   });
 }
 
