@@ -84,13 +84,22 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
   }, [nextDocNumber, documentNumber]);
 
   // Auto-fill from invoice metadata
+  // NOTE: We keep internal NIR numbering for document_number (don't overwrite with supplier invoice number)
+  // The supplier's invoice number goes into the notes for reference
   useEffect(() => {
     if (invoiceMetadata) {
       if (invoiceMetadata.supplier) {
         setPartnerName(invoiceMetadata.supplier);
       }
+      // Add supplier invoice number to notes instead of overwriting document number
       if (invoiceMetadata.invoiceNumber) {
-        setDocumentNumber(invoiceMetadata.invoiceNumber);
+        setNotes(prev => {
+          const invoiceRef = `Nr. factură furnizor: ${invoiceMetadata.invoiceNumber}`;
+          if (prev && !prev.includes(invoiceRef)) {
+            return `${invoiceRef}\n${prev}`;
+          }
+          return prev || invoiceRef;
+        });
       }
       if (invoiceMetadata.invoiceDate) {
         const parsedDate = new Date(invoiceMetadata.invoiceDate);
