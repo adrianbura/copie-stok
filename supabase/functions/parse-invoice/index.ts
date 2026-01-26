@@ -51,18 +51,21 @@ Analizează textul facturii și extrage:
 2. Numărul facturii (din câmpul care conține "Nr." sau "Numar factura" sau identificator similar)
 3. Data facturii (format YYYY-MM-DD, din "Data emitere" sau similar)
 4. Lista de produse cu:
-   - Cod produs - GENEREAZĂ cod bazat pe tipul produsului din denumire:
-     * "Baterie" sau "Battery" → BAT-XXX (ex: BAT-001)
-     * "Single Shot" → SS-XXX (ex: SS-001)
-     * "Single Row" → SR-XXX (ex: SR-001)
-     * "Bombita" sau "Bombită" → BMB-XXX (ex: BMB-001)
-     * "Emitator de sunet" sau "Emițător" → EMS-XXX (ex: EMS-001)
-     * Alte produse → PYRO-XXX
-     Unde XXX este un număr secvențial unic pentru fiecare tip
-   - Denumire produs (din coloana "Nume articol", "Descriere articol" sau "Denumire" - include TOATE textul descriptiv)
+   - Cod produs - EXTRAGE codul REAL al produsului din factură:
+     * Codul apare de obicei la ÎNCEPUTUL denumirii produsului (ex: "FS710", "LBF120", "NS-SMR25", "CLE4030", "SFT9001")
+     * Poate fi în format: litere+cifre (FS710), litere-litere+cifre (NS-SMR25), sau similar
+     * NU GENERA coduri artificiale! Folosește EXACT codul din factură
+     * Dacă nu găsești un cod clar, folosește primele caractere ale denumirii până la primul spațiu sau separator
+   - Denumire produs (din coloana "Nume articol", "Descriere articol" sau "Denumire" - include TOATE textul descriptiv DUPĂ cod)
    - Cantitate (din coloana "Cantitate" sau "Cantitate facturata" - NU din "Cantitate de baza")
    - Preț unitar (din coloana "Pret unitar" sau "Pretul net al articolului" - în RON, fără TVA)
    - Categorie pirotehnică (F1, F2, F3, F4, T1, T2) - deduse din denumire
+
+REGULI CRITICE PENTRU EXTRAGEREA CODULUI:
+- Codul produsului este ÎNTOTDEAUNA extras din text, NU generat
+- Exemple de coduri reale: "FS710", "FS711", "LBF120", "NS-SMR25", "CLE4030", "SFT9001", "HXMF1250"
+- Codul apare de obicei înaintea descrierii produsului
+- NU folosi formate generice ca "BAT-001", "PYRO-001" - acestea NU sunt coduri reale!
 
 REGULI CRITICE PENTRU EXTRAGEREA TABELULUI:
 - Coloana "Cantitate" sau "Cantitate facturata" conține CANTITATEA REALĂ comandată (poate fi zecimală, rotunjește la întreg)
