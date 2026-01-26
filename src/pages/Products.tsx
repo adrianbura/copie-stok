@@ -3,6 +3,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { ProductsTable } from '@/components/products/ProductsTable';
 import { ProductFilters } from '@/components/products/ProductFilters';
 import { ProductDialog } from '@/components/products/ProductDialog';
+import { ProductViewDialog } from '@/components/products/ProductViewDialog';
 import { useProducts, useDeleteProduct, useWarehouseProductStats } from '@/hooks/useProducts';
 import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +33,8 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
 
   // Reset editingProduct when dialog closes
   const handleDialogOpenChange = (open: boolean) => {
@@ -78,6 +81,11 @@ export default function Products() {
   const handleDeleteClick = (product: Product) => {
     setProductToDelete(product);
     setDeleteDialogOpen(true);
+  };
+
+  const handleViewProduct = (product: Product) => {
+    setViewingProduct(product);
+    setViewDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
@@ -129,6 +137,7 @@ export default function Products() {
         ) : filteredProducts.length > 0 ? (
           <ProductsTable 
             products={filteredProducts} 
+            onView={handleViewProduct}
             onEdit={canEdit ? handleEditProduct : undefined}
             onDelete={isAdmin ? handleDeleteClick : undefined}
           />
@@ -144,6 +153,12 @@ export default function Products() {
           </Card>
         )}
       </div>
+
+      <ProductViewDialog
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        product={viewingProduct}
+      />
 
       <ProductDialog 
         open={dialogOpen} 
