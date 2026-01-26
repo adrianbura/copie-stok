@@ -14,6 +14,7 @@ import {
   LogOut,
   User,
   Users,
+  Warehouse,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -105,35 +106,51 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             );
           })}
 
-          {/* Admin Users - only visible to admins */}
+          {/* Admin Section - only visible to admins */}
           {isAdmin && (
-            <Link
-              to="/admin/users"
-              onClick={handleNavClick}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 mt-4 border-t border-sidebar-border pt-4 relative',
-                location.pathname === '/admin/users'
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
-                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-              )}
-            >
-              <Users className={cn('h-5 w-5 flex-shrink-0', location.pathname === '/admin/users' && 'animate-scale-in')} />
-              {(!collapsed || onNavigate) && (
-                <span className="animate-fade-in flex items-center gap-2">
-                  Utilizatori
-                  {pendingCount > 0 && (
-                    <Badge variant="destructive" className="h-5 min-w-5 p-0 flex items-center justify-center text-xs">
-                      {pendingCount}
-                    </Badge>
-                  )}
-                </span>
-              )}
-              {collapsed && !onNavigate && pendingCount > 0 && (
-                <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px]">
-                  {pendingCount}
-                </Badge>
-              )}
-            </Link>
+            <div className="mt-4 border-t border-sidebar-border pt-4 space-y-1">
+              <Link
+                to="/admin/users"
+                onClick={handleNavClick}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 relative',
+                  location.pathname === '/admin/users'
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                )}
+              >
+                <Users className={cn('h-5 w-5 flex-shrink-0', location.pathname === '/admin/users' && 'animate-scale-in')} />
+                {(!collapsed || onNavigate) && (
+                  <span className="animate-fade-in flex items-center gap-2">
+                    Utilizatori
+                    {pendingCount > 0 && (
+                      <Badge variant="destructive" className="h-5 min-w-5 p-0 flex items-center justify-center text-xs">
+                        {pendingCount}
+                      </Badge>
+                    )}
+                  </span>
+                )}
+                {collapsed && !onNavigate && pendingCount > 0 && (
+                  <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px]">
+                    {pendingCount}
+                  </Badge>
+                )}
+              </Link>
+              
+              <Link
+                to="/admin/warehouses"
+                onClick={handleNavClick}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  location.pathname === '/admin/warehouses'
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                )}
+              >
+                <Warehouse className={cn('h-5 w-5 flex-shrink-0', location.pathname === '/admin/warehouses' && 'animate-scale-in')} />
+                {(!collapsed || onNavigate) && <span className="animate-fade-in">Depozite</span>}
+              </Link>
+            </div>
           )}
         </nav>
 

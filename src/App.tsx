@@ -13,6 +13,7 @@ import Exits from "./pages/Exits";
 import Reports from "./pages/Reports";
 import Alerts from "./pages/Alerts";
 import AdminUsers from "./pages/AdminUsers";
+import AdminWarehouses from "./pages/AdminWarehouses";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+              <Route path="/admin/warehouses" element={<ProtectedRoute><AdminWarehouses /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </WarehouseProvider>
