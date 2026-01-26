@@ -1,4 +1,4 @@
-import { useWarehouseContext, useAllowedWarehouses, Warehouse } from '@/hooks/useWarehouse';
+import { useWarehouseContext, useAllowedWarehouses, useWarehouses, Warehouse } from '@/hooks/useWarehouse';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Warehouse as WarehouseIcon, MapPin, Loader2, AlertCircle } from 'lucide-react';
@@ -8,11 +8,21 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface WarehouseSelectorProps {
   onSelect?: (warehouse: Warehouse) => void;
   className?: string;
+  /** When true, shows all warehouses (for login page before auth) */
+  showAll?: boolean;
 }
 
-export function WarehouseSelector({ onSelect, className }: WarehouseSelectorProps) {
+export function WarehouseSelector({ onSelect, className, showAll = false }: WarehouseSelectorProps) {
   const { setSelectedWarehouse } = useWarehouseContext();
-  const { data: allowedWarehouses = [], isLoading, isError } = useAllowedWarehouses();
+  
+  // Use all warehouses for login page, filtered for authenticated users
+  const allWarehousesQuery = useWarehouses();
+  const allowedWarehousesQuery = useAllowedWarehouses();
+  
+  // Choose which query to use based on showAll prop
+  const { data: warehouses = [], isLoading, isError } = showAll 
+    ? allWarehousesQuery 
+    : allowedWarehousesQuery;
 
   const handleSelect = (warehouse: Warehouse) => {
     setSelectedWarehouse(warehouse);
@@ -38,14 +48,14 @@ export function WarehouseSelector({ onSelect, className }: WarehouseSelectorProp
     );
   }
 
-  if (allowedWarehouses.length === 0) {
+  if (warehouses.length === 0) {
     return (
       <div className="text-center py-8 space-y-2">
         <p className="text-muted-foreground">
-          Nu ai acces la niciun depozit.
+          {showAll ? 'Nu există depozite în sistem.' : 'Nu ai acces la niciun depozit.'}
         </p>
         <p className="text-sm text-muted-foreground">
-          Contactează administratorul pentru a primi acces.
+          {showAll ? 'Administratorul trebuie să creeze un depozit.' : 'Contactează administratorul pentru a primi acces.'}
         </p>
       </div>
     );
@@ -53,7 +63,7 @@ export function WarehouseSelector({ onSelect, className }: WarehouseSelectorProp
 
   return (
     <div className={cn("grid gap-4", className)}>
-      {allowedWarehouses.map((warehouse) => (
+      {warehouses.map((warehouse) => (
         <Card
           key={warehouse.id}
           className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md"

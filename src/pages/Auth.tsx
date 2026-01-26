@@ -68,7 +68,7 @@ export default function Auth() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <WarehouseSelector onSelect={handleWarehouseSelect} />
+              <WarehouseSelector onSelect={handleWarehouseSelect} showAll />
             </CardContent>
           </Card>
         ) : (
