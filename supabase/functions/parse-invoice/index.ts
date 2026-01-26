@@ -59,6 +59,11 @@ Analizează textul facturii și extrage:
 
 === REGULI CRITICE PENTRU CODUL PRODUSULUI ===
 
+DETECTARE RO eFactura:
+- Dacă vezi textul "RO eFactura" ORIUNDE în factură (de obicei deasupra numărului facturii) → FOLOSEȘTE ÎNTOTDEAUNA denumirea completă din "Nume articol" sau "Descriere articol" ca și cod!
+- Pentru facturile RO eFactura, NU căuta coduri - folosește direct denumirea produsului ca "code"
+
+PENTRU ALTE FACTURI (fără "RO eFactura"):
 PASUL 1: Caută un COD REAL în factură. Un cod real are aceste caracteristici:
 - Este SCURT (2-15 caractere)
 - Este ALFANUMERIC (conține litere și/sau cifre, poate avea cratimă)
