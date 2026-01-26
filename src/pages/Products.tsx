@@ -8,8 +8,12 @@ import { useProducts, useDeleteProduct, useWarehouseProductStats } from '@/hooks
 import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { useAuth } from '@/hooks/useAuth';
 import { Product, PyroCategory } from '@/types';
-import { Package, Loader2 } from 'lucide-react';
+import { Package, Loader2, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -96,6 +100,34 @@ export default function Products() {
     }
   };
 
+  const handleExportExcel = () => {
+    if (filteredProducts.length === 0) {
+      toast.error('Nu există produse de exportat');
+      return;
+    }
+
+    const exportData = filteredProducts.map((product) => ({
+      'Cod': product.code,
+      'Nume Produs': product.name,
+      'Categorie': product.category,
+      'Cantitate': product.quantity,
+      'Stoc Minim': product.min_stock,
+      'Locație': product.location || '-',
+      'Furnizor': product.supplier || '-',
+      'Preț Unitar (RON)': Number(product.unit_price),
+      'Valoare Totală (RON)': product.quantity * Number(product.unit_price),
+      'Data Expirare': product.expiry_date ? format(new Date(product.expiry_date), 'dd.MM.yyyy') : '-',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Stoc Produse');
+
+    const fileName = `stoc-produse-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    toast.success(`Export realizat: ${fileName}`);
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -128,6 +160,10 @@ export default function Products() {
             <span className="font-semibold text-foreground">{displayProducts.length}</span> produse
             {selectedWarehouse && <span className="ml-1">în {selectedWarehouse.name}</span>}
           </p>
+          <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-2">
+            <Download className="h-4 w-4" />
+            Export Excel
+          </Button>
         </div>
 
         {isLoading ? (
