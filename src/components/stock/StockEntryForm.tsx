@@ -102,7 +102,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
     }
   }, [invoiceMetadata, onMetadataUsed]);
 
-  const selectedProduct = warehouseProducts?.find((p) => p.id === selectedProductId);
+  const selectedProduct = allProducts?.find((p) => p.id === selectedProductId);
   const requestedQuantity = parseInt(itemQuantity) || 0;
 
   // Add item to the list
@@ -344,17 +344,17 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {!isNewProduct ? (
                 <div className="space-y-2 sm:col-span-2">
-                  <Label>Produs Existent (din depozitul curent)</Label>
+                  <Label>Produs Existent (din catalog)</Label>
                   <ProductSearchSelect
-                    products={warehouseProducts}
+                    products={allProducts}
                     value={selectedProductId}
                     onSelect={setSelectedProductId}
                     placeholder="Caută și selectează produsul"
-                    showStock
+                    showStock={false}
                   />
                   {selectedProduct && (
                     <p className="text-xs text-muted-foreground">
-                      Stoc în depozit: {warehouseProducts?.find(p => p.id === selectedProductId)?.quantity || 0} buc
+                      Produs: {selectedProduct.code} - {selectedProduct.name}
                     </p>
                   )}
                 </div>
