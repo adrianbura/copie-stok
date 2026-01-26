@@ -33,6 +33,14 @@ export default function Products() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
+  // Reset editingProduct when dialog closes
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setEditingProduct(null);
+    }
+  };
+
   // Use warehouse-specific stock if warehouse is selected, otherwise use global products
   const displayProducts = useMemo(() => {
     if (selectedWarehouse?.id && warehouseStock) {
@@ -139,7 +147,7 @@ export default function Products() {
 
       <ProductDialog 
         open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
+        onOpenChange={handleDialogOpenChange} 
         product={editingProduct} 
       />
 

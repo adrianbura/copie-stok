@@ -93,6 +93,8 @@ export function useUpdateProduct() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse_stock_products'] });
       toast.success('Produs actualizat cu succes!');
     },
     onError: (error) => {
