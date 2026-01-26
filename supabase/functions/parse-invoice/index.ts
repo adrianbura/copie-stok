@@ -51,11 +51,18 @@ Analizează textul facturii și extrage:
 2. Numărul facturii (din câmpul care conține "Nr." sau "Numar factura" sau identificator similar)
 3. Data facturii (format YYYY-MM-DD, din "Data emitere" sau similar)
 4. Lista de produse cu:
-   - Cod produs (dacă există în factură, altfel generează unul bazat pe nume, ex: "PYRO-001")
+   - Cod produs - GENEREAZĂ cod bazat pe tipul produsului din denumire:
+     * "Baterie" sau "Battery" → BAT-XXX (ex: BAT-001)
+     * "Single Shot" → SS-XXX (ex: SS-001)
+     * "Single Row" → SR-XXX (ex: SR-001)
+     * "Bombita" sau "Bombită" → BMB-XXX (ex: BMB-001)
+     * "Emitator de sunet" sau "Emițător" → EMS-XXX (ex: EMS-001)
+     * Alte produse → PYRO-XXX
+     Unde XXX este un număr secvențial unic pentru fiecare tip
    - Denumire produs (din coloana "Nume articol", "Descriere articol" sau "Denumire" - include TOATE textul descriptiv)
    - Cantitate (din coloana "Cantitate" sau "Cantitate facturata" - NU din "Cantitate de baza")
    - Preț unitar (din coloana "Pret unitar" sau "Pretul net al articolului" - în RON, fără TVA)
-   - Categorie pirotehnică (F1, F2, F3, F4, T1, T2) - deduce din denumire
+   - Categorie pirotehnică (F1, F2, F3, F4, T1, T2) - deduse din denumire
 
 REGULI CRITICE PENTRU EXTRAGEREA TABELULUI:
 - Coloana "Cantitate" sau "Cantitate facturata" conține CANTITATEA REALĂ comandată (poate fi zecimală, rotunjește la întreg)
