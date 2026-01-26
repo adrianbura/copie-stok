@@ -55,18 +55,19 @@ export function WarehouseProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Validate stored warehouse exists when warehouses load
+  // Only clear if we have loaded warehouses AND the warehouse was deleted (not just not in cache yet)
   useEffect(() => {
     if (warehouses.length > 0 && selectedWarehouse) {
       const exists = warehouses.find(w => w.id === selectedWarehouse.id);
-      if (!exists) {
-        // Stored warehouse no longer exists
-        setSelectedWarehouseState(null);
-        localStorage.removeItem(WAREHOUSE_STORAGE_KEY);
-      } else if (exists.name !== selectedWarehouse.name || exists.code !== selectedWarehouse.code) {
+      if (exists) {
         // Update stored data if warehouse was renamed
-        setSelectedWarehouseState(exists);
-        localStorage.setItem(WAREHOUSE_STORAGE_KEY, JSON.stringify(exists));
+        if (exists.name !== selectedWarehouse.name || exists.code !== selectedWarehouse.code) {
+          setSelectedWarehouseState(exists);
+          localStorage.setItem(WAREHOUSE_STORAGE_KEY, JSON.stringify(exists));
+        }
       }
+      // Note: We don't clear selection if warehouse isn't found - it might just be a new one
+      // that hasn't been refetched yet. The warehouse will be validated on actual use.
     }
   }, [warehouses, selectedWarehouse]);
 
@@ -127,6 +128,8 @@ export function useWarehouses() {
       if (error) throw error;
       return data as Warehouse[];
     },
+    staleTime: 0, // Always refetch to get latest warehouses
+    refetchOnMount: true,
   });
 }
 
