@@ -7,6 +7,10 @@ import { CATEGORIES } from '@/types';
 import { useProducts, useWarehouseProductStats } from '@/hooks/useProducts';
 import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { FileSpreadsheet, Download, BarChart3, PieChart, TrendingUp, Package, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { ProductMovementRegister } from '@/components/reports/ProductMovementRegister';
 import { DocumentHistoryList } from '@/components/reports/DocumentHistoryList';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from 'recharts';
@@ -41,6 +45,80 @@ export default function Reports() {
     }
   });
 
+  const handleExportPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Title
+      doc.setFontSize(18);
+      doc.text('Raport Stoc Produse', pageWidth / 2, 20, { align: 'center' });
+      
+      // Subtitle with date and warehouse
+      doc.setFontSize(10);
+      const subtitle = selectedWarehouse 
+        ? `${selectedWarehouse.name} - ${format(new Date(), 'dd.MM.yyyy')}`
+        : `Toate depozitele - ${format(new Date(), 'dd.MM.yyyy')}`;
+      doc.text(subtitle, pageWidth / 2, 28, { align: 'center' });
+
+      // Summary stats
+      doc.setFontSize(12);
+      doc.text('Sumar General', 14, 40);
+      
+      autoTable(doc, {
+        startY: 45,
+        head: [['Indicator', 'Valoare']],
+        body: [
+          ['Total Produse', totalProducts.toString()],
+          ['Valoare Totală', `${totalStockValue.toLocaleString()} RON`],
+          ['Produse Stoc Scăzut', lowStockCount.toString()],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 10 },
+      });
+
+      // Category breakdown
+      const lastTableY = (doc as any).lastAutoTable?.finalY || 80;
+      doc.text('Detalii pe Categorii', 14, lastTableY + 15);
+
+      const categoryData = CATEGORIES.map((cat) => {
+        if (selectedWarehouse?.id && warehouseStock && warehouseStock.length > 0) {
+          const catStock = warehouseStock.filter((ws: any) => ws.product?.category === cat.id);
+          const catQuantity = catStock.reduce((sum: number, ws: any) => sum + ws.quantity, 0);
+          const catValue = catStock.reduce((sum: number, ws: any) => sum + ws.quantity * Number(ws.product?.unit_price || 0), 0);
+          const catProductCount = catStock.filter((ws: any) => ws.quantity > 0).length;
+          return [cat.name, catProductCount.toString(), catQuantity.toString(), `${catValue.toLocaleString()} RON`];
+        }
+        const catProducts = products?.filter((p) => p.category === cat.id) || [];
+        const catValue = catProducts.reduce((sum, p) => sum + p.quantity * Number(p.unit_price), 0);
+        return [cat.name, catProducts.length.toString(), (stockByCategory[cat.id] || 0).toString(), `${catValue.toLocaleString()} RON`];
+      });
+
+      autoTable(doc, {
+        startY: lastTableY + 20,
+        head: [['Categorie', 'Produse', 'Cantitate', 'Valoare']],
+        body: categoryData,
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 10 },
+      });
+
+      // Footer
+      const finalY = (doc as any).lastAutoTable?.finalY || 150;
+      doc.setFontSize(8);
+      doc.setTextColor(128);
+      doc.text(`Generat la: ${format(new Date(), 'dd.MM.yyyy HH:mm')}`, 14, finalY + 15);
+
+      const fileName = `raport-stoc-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      doc.save(fileName);
+      toast.success(`Export realizat: ${fileName}`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Eroare la generarea PDF-ului');
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -63,7 +141,7 @@ export default function Reports() {
                 <SelectItem value="year">Ultimul an</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" className="gap-2"><Download className="h-4 w-4" />Export PDF</Button>
+            <Button variant="outline" className="gap-2" onClick={handleExportPDF}><Download className="h-4 w-4" />Export PDF</Button>
           </div>
         </div>
 
