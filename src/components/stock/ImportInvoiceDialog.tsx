@@ -110,11 +110,53 @@ export function ImportInvoiceDialog({ onImportToList, externalOpen, onExternalOp
       const errors: string[] = [];
 
       for (const item of invoice.items) {
-        // Try to find existing product by code
-        const existingProduct = products?.find(p => 
-          p.code.toLowerCase() === item.code.toLowerCase() ||
-          p.name.toLowerCase() === item.name.toLowerCase()
+        // Try to find existing product - prioritize name matching over AI-generated codes
+        // 1. First try exact name match
+        // 2. Then try fuzzy name match (contains key words)
+        // 3. AI-generated codes are unique per invoice, so we don't match by code
+        
+        const itemNameLower = item.name.toLowerCase();
+        
+        // Extract key identifiers from the item name for fuzzy matching
+        const extractKeyWords = (name: string): string[] => {
+          const lower = name.toLowerCase();
+          const words: string[] = [];
+          
+          // Extract caliber (1", 1.2", 2", 3", etc.)
+          const caliberMatch = lower.match(/(\d+(?:\.\d+)?)\s*["'']/);
+          if (caliberMatch) words.push(caliberMatch[0].replace(/\s/g, ''));
+          
+          // Extract type keywords
+          if (lower.includes('single shot')) words.push('single shot');
+          if (lower.includes('baterie')) words.push('baterie');
+          if (lower.includes('bombita') || lower.includes('bombită')) words.push('bombita');
+          
+          // Extract color/effect keywords
+          const effects = ['brocade', 'crown', 'strobe', 'willow', 'peony', 'chrysanthemum', 
+                          'crackling', 'glitter', 'waterfall', 'jellyfish', 'comet', 'mine'];
+          effects.forEach(e => { if (lower.includes(e)) words.push(e); });
+          
+          return words;
+        };
+        
+        // Find exact name match first
+        let existingProduct = products?.find(p => 
+          p.name.toLowerCase() === itemNameLower
         );
+        
+        // If no exact match, try fuzzy matching
+        if (!existingProduct) {
+          const itemKeyWords = extractKeyWords(item.name);
+          
+          if (itemKeyWords.length >= 2) {
+            existingProduct = products?.find(p => {
+              const productKeyWords = extractKeyWords(p.name);
+              // Match if at least 80% of key words match
+              const matchCount = itemKeyWords.filter(w => productKeyWords.includes(w)).length;
+              return matchCount >= Math.ceil(itemKeyWords.length * 0.8);
+            });
+          }
+        }
 
         if (existingProduct) {
           itemsToAdd.push({
@@ -125,7 +167,7 @@ export function ImportInvoiceDialog({ onImportToList, externalOpen, onExternalOp
           });
           matched++;
         } else {
-          // Create new product entry
+          // Create new product entry with AI-generated code
           itemsToAdd.push({
             id: crypto.randomUUID(),
             product: null,
