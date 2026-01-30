@@ -199,13 +199,9 @@ export function HistoricalStockReport() {
         ]),
         theme: 'grid',
         headStyles: { fillColor: [59, 130, 246], fontSize: 9 },
-        styles: { fontSize: 8, cellPadding: 2 },
+        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
         columnStyles: {
-          0: { cellWidth: 25 },
-          1: { cellWidth: 60 },
-          2: { cellWidth: 20 },
-          3: { cellWidth: 25, halign: 'right' },
-          4: { cellWidth: 45 },
+          3: { halign: 'right' },
         },
       });
 
