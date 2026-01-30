@@ -1,25 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useWarehouseContext, Warehouse } from '@/hooks/useWarehouse';
+import { useWarehouseContext, Warehouse, useAllowedWarehouses } from '@/hooks/useWarehouse';
 import { WarehouseSelector } from '@/components/warehouse/WarehouseSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Flame, Clock, ArrowLeft, Warehouse as WarehouseIcon } from 'lucide-react';
+import { Loader2, Flame, Clock, ArrowLeft, Warehouse as WarehouseIcon, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
-type AuthStep = 'warehouse' | 'login';
+type AuthStep = 'login' | 'warehouse';
 
 export default function Auth() {
-  const { user, loading } = useAuth();
-  const { selectedWarehouse, setSelectedWarehouse } = useWarehouseContext();
+  const { user, loading, signOut, isAdmin } = useAuth();
+  const { selectedWarehouse, setSelectedWarehouse, clearSelection } = useWarehouseContext();
+  const { data: allowedWarehouses = [], isLoading: warehousesLoading } = useAllowedWarehouses();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authStep, setAuthStep] = useState<AuthStep>(selectedWarehouse ? 'login' : 'warehouse');
+  
+  // Determine auth step: if user is logged in but no warehouse selected, show warehouse step
+  const [authStep, setAuthStep] = useState<AuthStep>('login');
 
-  if (loading) {
+  // Update step based on user state
+  useEffect(() => {
+    if (user) {
+      // User is logged in, should select warehouse
+      if (!selectedWarehouse) {
+        setAuthStep('warehouse');
+      }
+    } else {
+      // Not logged in, show login
+      setAuthStep('login');
+      // Clear any previously selected warehouse when logged out
+      if (selectedWarehouse) {
+        clearSelection();
+      }
+    }
+  }, [user, selectedWarehouse, clearSelection]);
+
+  // Validate that selected warehouse is in allowed list
+  useEffect(() => {
+    if (user && selectedWarehouse && allowedWarehouses.length > 0) {
+      const isAllowed = allowedWarehouses.some(w => w.id === selectedWarehouse.id);
+      if (!isAllowed && !isAdmin) {
+        // User doesn't have access to this warehouse
+        console.log('User does not have access to selected warehouse, clearing');
+        toast.error(`Nu ai acces la depozitul ${selectedWarehouse.name}. Selectează alt depozit.`);
+        clearSelection();
+      }
+    }
+  }, [user, selectedWarehouse, allowedWarehouses, isAdmin, clearSelection]);
+
+  if (loading || (user && warehousesLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -27,20 +60,24 @@ export default function Auth() {
     );
   }
 
-  // Only redirect to home if user is authenticated AND has a warehouse selected
-  // This prevents infinite loop when user changes warehouse (clearSelection + redirect to /auth)
+  // Only redirect to home if user is authenticated AND has a valid warehouse selected
   if (user && selectedWarehouse) {
-    return <Navigate to="/" replace />;
+    // Double-check warehouse access before redirecting
+    const isAllowed = isAdmin || allowedWarehouses.some(w => w.id === selectedWarehouse.id);
+    if (isAllowed) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   const handleWarehouseSelect = (warehouse: Warehouse) => {
     setSelectedWarehouse(warehouse);
-    setAuthStep('login');
     toast.success(`Depozit selectat: ${warehouse.name}`);
   };
 
-  const handleBackToWarehouse = () => {
-    setAuthStep('warehouse');
+  const handleLogout = async () => {
+    await signOut();
+    clearSelection();
+    setAuthStep('login');
   };
 
   return (
@@ -56,55 +93,50 @@ export default function Auth() {
           </p>
         </div>
 
-        {authStep === 'warehouse' ? (
+        {authStep === 'login' ? (
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Autentificare</TabsTrigger>
+              <TabsTrigger value="signup">Înregistrare</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login">
+              <LoginForm isSubmitting={isSubmitting} setIsSubmitting={setIsSubmitting} />
+            </TabsContent>
+
+            <TabsContent value="signup">
+              <SignUpForm isSubmitting={isSubmitting} setIsSubmitting={setIsSubmitting} />
+            </TabsContent>
+          </Tabs>
+        ) : (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <WarehouseIcon className="h-5 w-5 text-primary" />
-                Selectează Depozitul
-              </CardTitle>
-              <CardDescription>
-                Alege depozitul în care vei lucra
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <WarehouseIcon className="h-5 w-5 text-primary" />
+                    Selectează Depozitul
+                  </CardTitle>
+                  <CardDescription>
+                    Alege depozitul în care vei lucra
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="gap-2 text-muted-foreground hover:text-destructive"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Deconectare
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <WarehouseSelector onSelect={handleWarehouseSelect} showAll />
+              {/* showAll={false} - only show warehouses user has access to */}
+              <WarehouseSelector onSelect={handleWarehouseSelect} />
             </CardContent>
           </Card>
-        ) : (
-          <>
-            {/* Warehouse indicator */}
-            <div className="mb-4 flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToWarehouse}
-                className="gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Schimbă depozitul
-              </Button>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/20">
-                <WarehouseIcon className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">{selectedWarehouse?.name}</span>
-              </div>
-            </div>
-
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Autentificare</TabsTrigger>
-                <TabsTrigger value="signup">Înregistrare</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="login">
-                <LoginForm isSubmitting={isSubmitting} setIsSubmitting={setIsSubmitting} />
-              </TabsContent>
-
-              <TabsContent value="signup">
-                <SignUpForm isSubmitting={isSubmitting} setIsSubmitting={setIsSubmitting} />
-              </TabsContent>
-            </Tabs>
-          </>
         )}
       </div>
     </div>
