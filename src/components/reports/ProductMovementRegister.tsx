@@ -5,6 +5,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useProducts } from '@/hooks/useProducts';
 import { useStockMovements, StockMovementWithDetails } from '@/hooks/useStockMovements';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { CATEGORIES, Product } from '@/types';
 import { FileText, Printer, Download, CalendarIcon, X } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
@@ -33,8 +34,9 @@ export function ProductMovementRegister() {
   const [showRegister, setShowRegister] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
-  const { data: products } = useProducts();
-  const { data: allMovements } = useStockMovements();
+  const { selectedWarehouse } = useWarehouseContext();
+  const { data: products } = useProducts(selectedWarehouse?.id);
+  const { data: allMovements } = useStockMovements(selectedWarehouse?.id);
 
   const registerData = useMemo(() => {
     if (!products || !allMovements) return [];

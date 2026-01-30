@@ -206,6 +206,7 @@ export type Database = {
           supplier: string | null
           unit_price: number
           updated_at: string
+          warehouse_id: string | null
         }
         Insert: {
           batch_number?: string | null
@@ -225,6 +226,7 @@ export type Database = {
           supplier?: string | null
           unit_price?: number
           updated_at?: string
+          warehouse_id?: string | null
         }
         Update: {
           batch_number?: string | null
@@ -244,8 +246,17 @@ export type Database = {
           supplier?: string | null
           unit_price?: number
           updated_at?: string
+          warehouse_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

@@ -65,7 +65,7 @@ export function ImportMovementsDialog({ type, onImportToList, externalOpen, onEx
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { selectedWarehouse } = useWarehouseContext();
-  const { data: allProducts } = useProducts();
+  const { data: allProducts } = useProducts(selectedWarehouse?.id);
   // For exits, use warehouse-specific products with accurate stock levels
   const { data: warehouseProducts } = useWarehouseProducts(selectedWarehouse?.id);
 
