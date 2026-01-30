@@ -141,6 +141,17 @@ export function HistoricalStockReport() {
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Auto-fit column widths based on content
+    const colWidths = [
+      { wch: Math.max(12, ...filteredStock.map(item => item.product_code.length)) },
+      { wch: Math.max(10, ...filteredStock.map(item => item.product_name.length)) },
+      { wch: Math.max(10, ...filteredStock.map(item => item.category.length)) },
+      { wch: 12 },
+      { wch: Math.max(8, ...filteredStock.map(item => item.warehouse_name.length)) },
+    ];
+    ws['!cols'] = colWidths;
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Stoc Istoric');
 
