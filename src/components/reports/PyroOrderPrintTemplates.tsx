@@ -7,12 +7,14 @@ interface PrintTemplateProps {
   document: InventoryDocument;
   companyName?: string;
   companySettings?: CompanySettings | null;
+  operatorName?: string;
 }
 
 // Generate HTML for "Comandă de Materii Explozive" - Clean vertical table format
-export function generateOrderPrintHTML({ document, companyName = 'ARTIFICII GROUP SRL' }: PrintTemplateProps): string {
+export function generateOrderPrintHTML({ document, companyName = 'ARTIFICII GROUP SRL', operatorName }: PrintTemplateProps): string {
   const eventName = document.notes?.replace(/^[^:]+:\s*/, '') || '-';
-  const pyrotechnist = document.partner || '-';
+  // Use operator name (logged-in user) for Pirotehnist field
+  const pyrotechnist = operatorName || document.operator_name || document.partner || '-';
   const totalQuantity = document.items.reduce((sum, item) => sum + item.quantity, 0);
   
   return `
@@ -429,9 +431,10 @@ export function generateAvizPrintHTML({ document, companySettings }: PrintTempla
 }
 
 // Generate HTML for "Îndeplinirea Comenzii" - Clean vertical table format
-export function generateFulfillmentPrintHTML({ document, companyName = 'ARTIFICII GROUP SRL' }: PrintTemplateProps): string {
+export function generateFulfillmentPrintHTML({ document, companyName = 'ARTIFICII GROUP SRL', operatorName }: PrintTemplateProps): string {
   const eventName = document.notes?.replace(/^[^:]+:\s*/, '') || 'Foc Artificii';
-  const pyrotechnist = document.partner || '-';
+  // Use operator name (logged-in user) for Pirotehnist field
+  const pyrotechnist = operatorName || document.operator_name || document.partner || '-';
   const totalQuantity = document.items.reduce((sum, item) => sum + item.quantity, 0);
   
   return `
