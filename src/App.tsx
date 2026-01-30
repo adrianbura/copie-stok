@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { WarehouseProvider } from "@/hooks/useWarehouse";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Entries from "./pages/Entries";
@@ -25,6 +26,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <OfflineIndicator />
       <BrowserRouter>
         <AuthProvider>
           <WarehouseProvider>
