@@ -3,9 +3,11 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StockExitForm, ExitItem } from '@/components/stock/StockExitForm';
 import { MovementsHistory } from '@/components/stock/MovementsHistory';
 import { ImportMovementsDialog, ImportedItem } from '@/components/stock/ImportMovementsDialog';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { ArrowUpFromLine } from 'lucide-react';
 
 export default function Exits() {
+  const { selectedWarehouse } = useWarehouseContext();
   const [exitItems, setExitItems] = useState<ExitItem[]>([]);
 
   const handleImportToList = (items: ImportedItem[]) => {
@@ -45,7 +47,7 @@ export default function Exits() {
         />
 
         {/* History */}
-        <MovementsHistory type="exit" />
+        <MovementsHistory type="exit" warehouseId={selectedWarehouse?.id} />
       </div>
     </MainLayout>
   );
