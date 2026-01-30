@@ -184,7 +184,7 @@ export function HistoricalStockReport() {
 
       // Summary
       doc.setFontSize(10);
-      doc.text(`Total produse: ${totalProducts} | Cantitate totală: ${totalQuantity} buc`, 14, 38);
+      doc.text(`Total produse: ${totalProducts} | Cantitate totala: ${totalQuantity} buc`, 14, 38);
 
       // Table
       autoTable(doc, {
