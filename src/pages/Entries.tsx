@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StockEntryForm, EntryItem } from '@/components/stock/StockEntryForm';
 import { MovementsHistory } from '@/components/stock/MovementsHistory';
-import { ImportMovementsDialog, ImportedItem } from '@/components/stock/ImportMovementsDialog';
 import { ImportInvoiceDialog, InvoiceMetadata } from '@/components/stock/ImportInvoiceDialog';
 import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { ArrowDownToLine } from 'lucide-react';
@@ -20,39 +19,21 @@ export default function Entries() {
 
   const [entryItems, setEntryItems] = useState<EntryItem[]>([]);
   const [invoiceMetadata, setInvoiceMetadata] = useState<InvoiceMetadata | null>(null);
-  const [importFileOpen, setImportFileOpen] = useState(false);
-  const [importInvoiceOpen, setImportInvoiceOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Handle navigation state to open dialogs
   useEffect(() => {
     if (locationState?.openDialog) {
-      if (locationState.openDialog === 'importFile') {
-        setImportFileOpen(true);
-      } else if (locationState.openDialog === 'importInvoice') {
-        setImportInvoiceOpen(true);
+      // Both 'importFile' and 'importInvoice' now open the same unified dialog
+      if (locationState.openDialog === 'importFile' || locationState.openDialog === 'importInvoice') {
+        setImportDialogOpen(true);
       }
       // Clear the state to prevent reopening on subsequent renders
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [locationState, navigate, location.pathname]);
 
-  const handleImportToList = (items: ImportedItem[]) => {
-    const newItems: EntryItem[] = items.map(item => ({
-      id: item.id,
-      product: item.product,
-      quantity: item.quantity,
-      isNew: item.isNew,
-      newProductName: item.newProductName,
-      newProductCode: item.newProductCode,
-      category: item.category,
-      unitPrice: item.unitPrice,
-      supplier: item.supplier,
-    }));
-    
-    setEntryItems(prev => [...prev, ...newItems]);
-  };
-
-  const handleInvoiceImport = (items: EntryItem[], metadata?: InvoiceMetadata) => {
+  const handleImportToList = (items: EntryItem[], metadata?: InvoiceMetadata) => {
     setEntryItems(prev => [...prev, ...items]);
     if (metadata) {
       setInvoiceMetadata(metadata);
@@ -77,19 +58,11 @@ export default function Entries() {
               Înregistrează aprovizionări și adaugă produse în stoc
             </p>
           </div>
-          <div className="flex gap-2">
-            <ImportInvoiceDialog 
-              onImportToList={handleInvoiceImport}
-              externalOpen={importInvoiceOpen}
-              onExternalOpenChange={setImportInvoiceOpen}
-            />
-            <ImportMovementsDialog 
-              type="entry" 
-              onImportToList={handleImportToList}
-              externalOpen={importFileOpen}
-              onExternalOpenChange={setImportFileOpen}
-            />
-          </div>
+          <ImportInvoiceDialog 
+            onImportToList={handleImportToList}
+            externalOpen={importDialogOpen}
+            onExternalOpenChange={setImportDialogOpen}
+          />
         </div>
 
         {/* Entry Form */}
