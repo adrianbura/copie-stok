@@ -139,3 +139,44 @@ export function useCreateStockMovement() {
     },
   });
 }
+
+// Batch insert for multiple movements at once - MUCH faster than individual inserts
+export function useCreateBatchStockMovements() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (movements: CreateMovementInput[]) => {
+      if (movements.length === 0) return [];
+      
+      // Get current user once
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Prepare all movements for batch insert
+      const movementsToInsert = movements.map(movement => ({
+        ...movement,
+        date: movement.date || new Date().toISOString(),
+        created_by: user?.id || null,
+        warehouse_id: movement.warehouse_id || null,
+      }));
+      
+      // Single batch insert
+      const { data, error } = await supabase
+        .from('stock_movements')
+        .insert(movementsToInsert)
+        .select();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['stock_movements'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse_stock'] });
+      toast.success(`${data?.length || 0} mișcări de stoc înregistrate cu succes!`);
+    },
+    onError: (error) => {
+      console.error('Error creating batch stock movements:', error);
+      toast.error('Eroare la înregistrarea mișcărilor de stoc');
+    },
+  });
+}
