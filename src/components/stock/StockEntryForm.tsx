@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useProducts, useCreateProduct, useWarehouseProducts } from '@/hooks/useProducts';
-import { useCreateStockMovement } from '@/hooks/useStockMovements';
+import { useCreateBatchStockMovements } from '@/hooks/useStockMovements';
 import { useCreateInventoryDocument, useNextDocumentNumber, DocumentItem } from '@/hooks/useInventoryDocuments';
 import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { Product, PyroCategory, CATEGORIES } from '@/types';
@@ -52,7 +52,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
   // Filter products by warehouse for isolation
   const { data: warehouseProducts } = useProducts(selectedWarehouse?.id);
   const createProduct = useCreateProduct();
-  const createMovement = useCreateStockMovement();
+  const createBatchMovements = useCreateBatchStockMovements();
   const createDocument = useCreateInventoryDocument();
   const { data: nextDocNumber } = useNextDocumentNumber('entry', selectedWarehouse?.name);
   
@@ -395,17 +395,18 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
       });
 
       // Only create stock movements AFTER document is successfully saved
-      for (const docItem of documentItems) {
-        await createMovement.mutateAsync({
-          product_id: docItem.product_id,
-          type: 'entry',
-          quantity: docItem.quantity,
-          reference: documentNumber || undefined,
-          notes: notes || undefined,
-          date: entryDate.toISOString(),
-          warehouse_id: selectedWarehouse?.id,
-        });
-      }
+      // Use batch insert for much faster performance (single DB request instead of N requests)
+      const movementsToCreate = documentItems.map(docItem => ({
+        product_id: docItem.product_id,
+        type: 'entry' as const,
+        quantity: docItem.quantity,
+        reference: documentNumber || undefined,
+        notes: notes || undefined,
+        date: entryDate.toISOString(),
+        warehouse_id: selectedWarehouse?.id,
+      }));
+      
+      await createBatchMovements.mutateAsync(movementsToCreate);
 
       const newCount = entryItems.filter(i => i.isNew).length;
       
