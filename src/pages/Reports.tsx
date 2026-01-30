@@ -6,13 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CATEGORIES } from '@/types';
 import { useProducts, useWarehouseProductStats } from '@/hooks/useProducts';
 import { useWarehouseContext } from '@/hooks/useWarehouse';
-import { FileSpreadsheet, Download, BarChart3, PieChart, TrendingUp, Package, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { FileSpreadsheet, Download, BarChart3, PieChart, TrendingUp, Package, ArrowDownToLine, ArrowUpFromLine, History } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { ProductMovementRegister } from '@/components/reports/ProductMovementRegister';
 import { DocumentHistoryList } from '@/components/reports/DocumentHistoryList';
+import { HistoricalStockReport } from '@/components/reports/HistoricalStockReport';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from 'recharts';
 
 const COLORS = ['#10b981', '#0ea5e9', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -146,10 +147,14 @@ export default function Reports() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               Statistici
+            </TabsTrigger>
+            <TabsTrigger value="historical" className="gap-2">
+              <History className="h-4 w-4" />
+              Istoric Stoc
             </TabsTrigger>
             <TabsTrigger value="entries" className="gap-2">
               <ArrowDownToLine className="h-4 w-4" />
@@ -190,6 +195,10 @@ export default function Reports() {
               const catValue = catProducts.reduce((sum, p) => sum + p.quantity * Number(p.unit_price), 0); 
               return (<tr key={cat.id} className="border-t hover:bg-muted/30"><td className="p-3"><span className="flex items-center gap-2"><span>{cat.icon}</span><span className="font-medium">{cat.name}</span></span></td><td className="p-3 text-sm text-muted-foreground">{cat.description}</td><td className="p-3 text-right">{catProducts.length}</td><td className="p-3 text-right font-semibold">{stockByCategory[cat.id] || 0}</td><td className="p-3 text-right font-semibold">{catValue.toLocaleString()} RON</td></tr>); 
             })}</tbody></table></div></CardContent></Card>
+          </TabsContent>
+
+          <TabsContent value="historical">
+            <HistoricalStockReport />
           </TabsContent>
 
           <TabsContent value="entries">
