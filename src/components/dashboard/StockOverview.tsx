@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CATEGORIES, PyroCategory } from '@/types';
 import { useProductStats } from '@/hooks/useProducts';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { cn } from '@/lib/utils';
 
 const categoryColors: Record<PyroCategory, string> = {
@@ -13,7 +14,8 @@ const categoryColors: Record<PyroCategory, string> = {
 };
 
 export function StockOverview() {
-  const { stockByCategory } = useProductStats();
+  const { selectedWarehouse } = useWarehouseContext();
+  const { stockByCategory } = useProductStats(selectedWarehouse?.id);
   const totalStock = Object.values(stockByCategory).reduce((a, b) => a + b, 0);
 
   return (

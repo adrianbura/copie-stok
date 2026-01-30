@@ -3,9 +3,33 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product, PyroCategory } from '@/types';
 import { toast } from 'sonner';
 
-export function useProducts() {
+// Hook to get products filtered by warehouse (for warehouse isolation)
+export function useProducts(warehouseId?: string | null) {
   return useQuery({
-    queryKey: ['products'],
+    queryKey: ['products', warehouseId],
+    queryFn: async () => {
+      let query = supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      // If warehouse is specified, filter by it
+      if (warehouseId) {
+        query = query.eq('warehouse_id', warehouseId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return data as Product[];
+    },
+  });
+}
+
+// Hook to get all products globally (for admin views or migrations)
+export function useAllProducts() {
+  return useQuery({
+    queryKey: ['all-products'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
@@ -39,6 +63,7 @@ interface CreateProductInput {
   code: string;
   name: string;
   category: PyroCategory;
+  warehouse_id: string; // Required for warehouse isolation
   quantity?: number;
   min_stock?: number;
   unit_price?: number;
@@ -56,11 +81,12 @@ export function useCreateProduct() {
   
   return useMutation({
     mutationFn: async (product: CreateProductInput) => {
-      // Check if product code already exists
+      // Check if product code already exists in the same warehouse
       const { data: existing } = await supabase
         .from('products')
         .select('id, code')
         .eq('code', product.code)
+        .eq('warehouse_id', product.warehouse_id)
         .maybeSingle();
       
       if (existing) {
@@ -147,8 +173,8 @@ export function useDeleteProduct() {
   });
 }
 
-export function useProductStats() {
-  const { data: products } = useProducts();
+export function useProductStats(warehouseId?: string | null) {
+  const { data: products } = useProducts(warehouseId);
   
   const totalProducts = products?.length ?? 0;
   
@@ -175,9 +201,9 @@ export function useProductStats() {
   };
 }
 
-// Hook for warehouse-specific product stats
+// Hook for warehouse-specific product stats (with warehouse_stock quantities)
 export function useWarehouseProductStats(warehouseId?: string | null) {
-  const { data: products } = useProducts();
+  const { data: products } = useProducts(warehouseId);
   
   const { data: warehouseStock } = useQuery({
     queryKey: ['warehouse_stock', warehouseId],
@@ -253,10 +279,8 @@ export function useWarehouseProductStats(warehouseId?: string | null) {
   };
 }
 
-// Hook to get products available in a specific warehouse
+// Hook to get products with stock quantities in a specific warehouse (for exits)
 export function useWarehouseProducts(warehouseId?: string | null) {
-  const { data: allProducts } = useProducts();
-  
   const { data: warehouseStock, isLoading } = useQuery({
     queryKey: ['warehouse_stock_products', warehouseId],
     queryFn: async () => {
@@ -293,6 +317,6 @@ export function useWarehouseProducts(warehouseId?: string | null) {
     return { data: products, isLoading };
   }
   
-  // Fallback to all products if no warehouse selected
-  return { data: allProducts, isLoading: false };
+  // Fallback to empty array if no warehouse selected
+  return { data: [], isLoading: false };
 }

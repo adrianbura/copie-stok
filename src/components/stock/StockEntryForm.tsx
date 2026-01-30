@@ -49,8 +49,8 @@ export interface EntryItem {
 
 export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoiceMetadata, onMetadataUsed }: StockEntryFormProps) {
   const { selectedWarehouse } = useWarehouseContext();
-  const { data: allProducts } = useProducts();
-  const { data: warehouseProducts } = useWarehouseProducts(selectedWarehouse?.id);
+  // Filter products by warehouse for isolation
+  const { data: warehouseProducts } = useProducts(selectedWarehouse?.id);
   const createProduct = useCreateProduct();
   const createMovement = useCreateStockMovement();
   const createDocument = useCreateInventoryDocument();
@@ -116,7 +116,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
     }
   }, [invoiceMetadata, onMetadataUsed]);
 
-  const selectedProduct = allProducts?.find((p) => p.id === selectedProductId);
+  const selectedProduct = warehouseProducts?.find((p) => p.id === selectedProductId);
   const requestedQuantity = parseInt(itemQuantity) || 0;
 
   // Add item to the list
@@ -330,11 +330,11 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
         if (item.isNew && !productId) {
           let finalCode = item.newProductCode!;
           
-          // Check if code already exists in DB or in this batch
-          const existingInDb = allProducts?.find(p => p.code.toLowerCase() === finalCode.toLowerCase());
+          // Check if code already exists in this warehouse or in this batch
+          const existingInWarehouse = warehouseProducts?.find(p => p.code.toLowerCase() === finalCode.toLowerCase());
           const existsInBatch = codesCreatedInBatch.has(finalCode.toLowerCase());
           
-          if (existingInDb || existsInBatch) {
+          if (existingInWarehouse || existsInBatch) {
             // Generate unique suffix based on timestamp and random string
             const uniqueSuffix = Date.now().toString(36).slice(-4).toUpperCase() + 
                                 Math.random().toString(36).slice(2, 4).toUpperCase();
@@ -348,6 +348,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
             code: finalCode,
             name: item.newProductName!,
             category: item.category!,
+            warehouse_id: selectedWarehouse.id,
             quantity: 0,
             min_stock: 10,
             unit_price: item.unitPrice || 0,
@@ -497,7 +498,7 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
                 <div className="space-y-2 sm:col-span-2">
                   <Label>Produs Existent (din catalog)</Label>
                   <ProductSearchSelect
-                    products={allProducts}
+                    products={warehouseProducts}
                     value={selectedProductId}
                     onSelect={setSelectedProductId}
                     placeholder="Caută și selectează produsul"

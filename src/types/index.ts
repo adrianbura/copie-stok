@@ -21,6 +21,7 @@ export interface Product {
   net_weight: number | null;
   hazard_class: string | null;
   certification: string | null;
+  warehouse_id: string | null; // Warehouse isolation
   created_at: string;
   updated_at: string;
   created_by: string | null;

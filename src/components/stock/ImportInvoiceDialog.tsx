@@ -77,7 +77,7 @@ export function ImportInvoiceDialog({ onImportToList, externalOpen, onExternalOp
   const csvInputRef = useRef<HTMLInputElement>(null);
   
   const { selectedWarehouse } = useWarehouseContext();
-  const { data: products } = useProducts();
+  const { data: products } = useProducts(selectedWarehouse?.id);
   const { data: warehouseProducts } = useWarehouseProducts(selectedWarehouse?.id);
 
   const validCategories: PyroCategoryDB[] = ['F1', 'F2', 'F3', 'F4', 'T1', 'T2'];

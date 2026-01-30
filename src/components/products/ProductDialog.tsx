@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Product, PyroCategory } from '@/types';
 import { useCreateProduct, useUpdateProduct } from '@/hooks/useProducts';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -36,6 +37,7 @@ interface ProductDialogProps {
 
 export function ProductDialog({ open, onOpenChange, product }: ProductDialogProps) {
   const isEditing = !!product;
+  const { selectedWarehouse } = useWarehouseContext();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const isSubmitting = createProduct.isPending || updateProduct.isPending;
@@ -133,7 +135,14 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
       if (isEditing && product) {
         await updateProduct.mutateAsync({ id: product.id, ...productData });
       } else {
-        await createProduct.mutateAsync(productData);
+        if (!selectedWarehouse?.id) {
+          toast.error('Selectează un depozit înainte de a adăuga produse');
+          return;
+        }
+        await createProduct.mutateAsync({
+          ...productData,
+          warehouse_id: selectedWarehouse.id,
+        });
       }
       onOpenChange(false);
     } catch (error) {

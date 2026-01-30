@@ -19,7 +19,7 @@ const COLORS = ['#10b981', '#0ea5e9', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 export default function Reports() {
   const { selectedWarehouse } = useWarehouseContext();
-  const { data: products } = useProducts();
+  const { data: products } = useProducts(selectedWarehouse?.id);
   const { totalProducts, totalStockValue, lowStockCount, stockByCategory, warehouseStock } = useWarehouseProductStats(selectedWarehouse?.id);
 
   // Use warehouse-specific data for charts if available

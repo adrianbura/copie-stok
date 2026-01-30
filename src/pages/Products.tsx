@@ -27,7 +27,8 @@ import {
 
 export default function Products() {
   const { selectedWarehouse } = useWarehouseContext();
-  const { data: products, isLoading } = useProducts();
+  // Filter products by warehouse - pass warehouse_id to useProducts
+  const { data: products, isLoading } = useProducts(selectedWarehouse?.id);
   const { warehouseStock } = useWarehouseProductStats(selectedWarehouse?.id);
   const deleteProduct = useDeleteProduct();
   const { canEdit, isAdmin } = useAuth();
@@ -48,20 +49,26 @@ export default function Products() {
     }
   };
 
-  // Use warehouse-specific stock if warehouse is selected, otherwise use global products
+  // Products are now filtered by warehouse_id, optionally merge with warehouse_stock for quantities
   const displayProducts = useMemo(() => {
+    if (!products) return [];
+    
     if (selectedWarehouse?.id && warehouseStock) {
-      // Map warehouse_stock to product format with warehouse-specific quantities
-      return warehouseStock
-        .filter((ws: any) => ws.product)
-        .map((ws: any) => ({
-          ...ws.product,
-          quantity: ws.quantity,
-          min_stock: ws.min_stock,
-          location: ws.location || ws.product.location,
-        }));
+      // Map warehouse_stock quantities to products
+      return products.map((product) => {
+        const stockInfo = warehouseStock.find((ws: any) => ws.product?.id === product.id);
+        if (stockInfo) {
+          return {
+            ...product,
+            quantity: stockInfo.quantity,
+            min_stock: stockInfo.min_stock,
+            location: stockInfo.location || product.location,
+          };
+        }
+        return product;
+      });
     }
-    return products || [];
+    return products;
   }, [selectedWarehouse, warehouseStock, products]);
 
   const filteredProducts = useMemo(() => {
