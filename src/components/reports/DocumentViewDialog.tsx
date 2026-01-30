@@ -340,7 +340,7 @@ export function DocumentViewDialog({ document, onClose }: DocumentViewDialogProp
             <>
               <Button 
                 variant="outline" 
-                onClick={() => printPyroDocument(generateOrderPrintHTML({ document }))}
+                onClick={() => printPyroDocument(generateOrderPrintHTML({ document, operatorName: document.operator_name }))}
                 className="gap-2"
               >
                 <FileText className="h-4 w-4" />
@@ -348,7 +348,7 @@ export function DocumentViewDialog({ document, onClose }: DocumentViewDialogProp
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => printPyroDocument(generateFulfillmentPrintHTML({ document }))}
+                onClick={() => printPyroDocument(generateFulfillmentPrintHTML({ document, operatorName: document.operator_name }))}
                 className="gap-2"
               >
                 <ClipboardCheck className="h-4 w-4" />
