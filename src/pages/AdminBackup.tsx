@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { Download, Upload, Shield, AlertTriangle, CheckCircle2, FileJson, Loader2, Building2, Globe } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useBackup, BackupData } from '@/hooks/useBackup';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,30 +21,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { useWarehouseContext } from '@/hooks/useWarehouse';
-
-interface BackupData {
-  version: string;
-  createdAt: string;
-  backupType: 'global' | 'warehouse';
-  warehouseId?: string;
-  warehouseName?: string;
-  warehouseCode?: string;
-  products: any[];
-  stockMovements: any[];
-  warehouseStock: any[];
-  warehouses: any[];
-  inventoryDocuments: any[];
-  companySettings: any;
-  alerts: any[];
-}
 
 export default function AdminBackup() {
   const { isAdmin, loading } = useAuth();
   const { selectedWarehouse } = useWarehouseContext();
-  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
-  const [isCreatingWarehouseBackup, setIsCreatingWarehouseBackup] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
+  const {
+    isCreatingBackup,
+    isCreatingWarehouseBackup,
+    isRestoring,
+    createGlobalBackup,
+    createWarehouseBackup,
+    validateBackupFile,
+    executeRestore,
+  } = useBackup();
+
   const [confirmRestoreOpen, setConfirmRestoreOpen] = useState(false);
   const [finalConfirmOpen, setFinalConfirmOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -65,205 +55,23 @@ export default function AdminBackup() {
     return <Navigate to="/" replace />;
   }
 
-  const createGlobalBackup = async () => {
-    setIsCreatingBackup(true);
-    try {
-      // Fetch all data from tables
-      const [
-        productsRes,
-        movementsRes,
-        warehouseStockRes,
-        warehousesRes,
-        documentsRes,
-        companyRes,
-        alertsRes,
-      ] = await Promise.all([
-        supabase.from('products').select('*'),
-        supabase.from('stock_movements').select('*'),
-        supabase.from('warehouse_stock').select('*'),
-        supabase.from('warehouses').select('*'),
-        supabase.from('inventory_documents').select('*'),
-        supabase.from('company_settings').select('*').maybeSingle(),
-        supabase.from('alerts').select('*'),
-      ]);
-
-      // Check for errors
-      if (productsRes.error) throw productsRes.error;
-      if (movementsRes.error) throw movementsRes.error;
-      if (warehouseStockRes.error) throw warehouseStockRes.error;
-      if (warehousesRes.error) throw warehousesRes.error;
-      if (documentsRes.error) throw documentsRes.error;
-      if (companyRes.error) throw companyRes.error;
-      if (alertsRes.error) throw alertsRes.error;
-
-      const backupData: BackupData = {
-        version: '1.0',
-        createdAt: new Date().toISOString(),
-        backupType: 'global',
-        products: productsRes.data || [],
-        stockMovements: movementsRes.data || [],
-        warehouseStock: warehouseStockRes.data || [],
-        warehouses: warehousesRes.data || [],
-        inventoryDocuments: documentsRes.data || [],
-        companySettings: companyRes.data,
-        alerts: alertsRes.data || [],
-      };
-
-      downloadBackup(backupData, 'backup_global');
-      
-      toast.success('Backup global creat cu succes!', {
-        description: `${backupData.products.length} produse, ${backupData.stockMovements.length} mișcări exportate`,
-      });
-    } catch (error: any) {
-      console.error('Error creating backup:', error);
-      toast.error('Eroare la crearea backup-ului', {
-        description: error.message,
-      });
-    } finally {
-      setIsCreatingBackup(false);
+  const handleWarehouseBackup = () => {
+    if (selectedWarehouse) {
+      createWarehouseBackup(selectedWarehouse);
     }
-  };
-
-  const createWarehouseBackup = async () => {
-    if (!selectedWarehouse) {
-      toast.error('Niciun depozit selectat', {
-        description: 'Selectați un depozit din meniul principal',
-      });
-      return;
-    }
-
-    setIsCreatingWarehouseBackup(true);
-    try {
-      // Get products that have stock in this warehouse
-      const { data: warehouseStockData, error: stockError } = await supabase
-        .from('warehouse_stock')
-        .select('*, product:products(*)')
-        .eq('warehouse_id', selectedWarehouse.id);
-
-      if (stockError) throw stockError;
-
-      // Get product IDs that have stock in this warehouse
-      const productIds = warehouseStockData?.map(ws => ws.product_id) || [];
-
-      // Get movements for this warehouse
-      const { data: movementsData, error: movementsError } = await supabase
-        .from('stock_movements')
-        .select('*')
-        .eq('warehouse_id', selectedWarehouse.id);
-
-      if (movementsError) throw movementsError;
-
-      // Get documents for this warehouse
-      const { data: documentsData, error: documentsError } = await supabase
-        .from('inventory_documents')
-        .select('*')
-        .eq('warehouse', selectedWarehouse.name);
-
-      if (documentsError) throw documentsError;
-
-      // Get products
-      const products = warehouseStockData?.map(ws => ws.product).filter(Boolean) || [];
-
-      // Get alerts for products in this warehouse
-      const { data: alertsData, error: alertsError } = await supabase
-        .from('alerts')
-        .select('*')
-        .in('product_id', productIds.length > 0 ? productIds : ['00000000-0000-0000-0000-000000000000']);
-
-      if (alertsError) throw alertsError;
-
-      const backupData: BackupData = {
-        version: '1.0',
-        createdAt: new Date().toISOString(),
-        backupType: 'warehouse',
-        warehouseId: selectedWarehouse.id,
-        warehouseName: selectedWarehouse.name,
-        warehouseCode: selectedWarehouse.code,
-        products: products,
-        stockMovements: movementsData || [],
-        warehouseStock: warehouseStockData?.map(ws => ({
-          id: ws.id,
-          warehouse_id: ws.warehouse_id,
-          product_id: ws.product_id,
-          quantity: ws.quantity,
-          min_stock: ws.min_stock,
-          location: ws.location,
-          created_at: ws.created_at,
-          updated_at: ws.updated_at,
-        })) || [],
-        warehouses: [selectedWarehouse],
-        inventoryDocuments: documentsData || [],
-        companySettings: null,
-        alerts: alertsData || [],
-      };
-
-      downloadBackup(backupData, `backup_${selectedWarehouse.code}`);
-
-      toast.success(`Backup ${selectedWarehouse.code} creat cu succes!`, {
-        description: `${products.length} produse, ${movementsData?.length || 0} mișcări exportate`,
-      });
-    } catch (error: any) {
-      console.error('Error creating warehouse backup:', error);
-      toast.error('Eroare la crearea backup-ului', {
-        description: error.message,
-      });
-    } finally {
-      setIsCreatingWarehouseBackup(false);
-    }
-  };
-
-  const downloadBackup = (data: BackupData, prefix: string) => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10);
-    const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
-    a.href = url;
-    a.download = `${prefix}_${dateStr}_${timeStr}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.json')) {
-      toast.error('Fișier invalid', {
-        description: 'Selectați un fișier JSON valid',
-      });
-      return;
-    }
-
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text) as BackupData;
-
-      // Validate structure
-      if (!data.version || !data.createdAt || !Array.isArray(data.products)) {
-        throw new Error('Structură fișier invalidă');
-      }
-
-      if (!data.stockMovements || !data.warehouses) {
-        throw new Error('Fișierul nu conține toate datele necesare');
-      }
-
+    const data = await validateBackupFile(file);
+    if (data) {
       setSelectedFile(file);
       setBackupPreview(data);
       setConfirmRestoreOpen(true);
-    } catch (error: any) {
-      console.error('Error parsing backup file:', error);
-      toast.error('Fișier backup invalid', {
-        description: error.message || 'Nu s-a putut citi fișierul',
-      });
-      setSelectedFile(null);
-      setBackupPreview(null);
     }
 
-    // Reset input
     e.target.value = '';
   };
 
@@ -273,169 +81,23 @@ export default function AdminBackup() {
     setConfirmText('');
   };
 
-  const executeRestore = async () => {
+  const handleExecuteRestore = async () => {
     if (!backupPreview) return;
 
     setFinalConfirmOpen(false);
-    setIsRestoring(true);
-
-    try {
-      if (backupPreview.backupType === 'warehouse' && backupPreview.warehouseId) {
-        // Warehouse-specific restore - only delete and restore data for this warehouse
-        await executeWarehouseRestore(backupPreview);
-      } else {
-        // Global restore - delete everything and restore
-        await executeGlobalRestore(backupPreview);
-      }
-
-      toast.success('Restaurare completă!', {
-        description: backupPreview.backupType === 'warehouse' 
-          ? `Depozit ${backupPreview.warehouseCode} restaurat cu succes`
-          : `${backupPreview.products.length} produse, ${backupPreview.stockMovements.length} mișcări restaurate`,
-      });
-
-      // Reset state
+    const success = await executeRestore(backupPreview);
+    
+    if (success) {
       setSelectedFile(null);
       setBackupPreview(null);
       setConfirmText('');
-
-    } catch (error: any) {
-      console.error('Error restoring backup:', error);
-      toast.error('Eroare la restaurare', {
-        description: error.message,
-      });
-    } finally {
-      setIsRestoring(false);
     }
   };
 
-  const executeGlobalRestore = async (data: BackupData) => {
-    // Delete existing data in correct order (respecting foreign keys)
-    const deleteAlerts = await supabase.from('alerts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (deleteAlerts.error) throw deleteAlerts.error;
-
-    const deleteMovements = await supabase.from('stock_movements').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (deleteMovements.error) throw deleteMovements.error;
-
-    const deleteWarehouseStock = await supabase.from('warehouse_stock').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (deleteWarehouseStock.error) throw deleteWarehouseStock.error;
-
-    const deleteDocuments = await supabase.from('inventory_documents').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (deleteDocuments.error) throw deleteDocuments.error;
-
-    const deleteProducts = await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (deleteProducts.error) throw deleteProducts.error;
-
-    const deleteWarehouses = await supabase.from('warehouses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (deleteWarehouses.error) throw deleteWarehouses.error;
-
-    // Insert new data in correct order
-    if (data.warehouses.length > 0) {
-      const { error } = await supabase.from('warehouses').insert(data.warehouses);
-      if (error) throw error;
-    }
-
-    if (data.products.length > 0) {
-      const { error } = await supabase.from('products').insert(data.products);
-      if (error) throw error;
-    }
-
-    if (data.warehouseStock.length > 0) {
-      const { error } = await supabase.from('warehouse_stock').insert(data.warehouseStock);
-      if (error) throw error;
-    }
-
-    if (data.stockMovements.length > 0) {
-      const { error } = await supabase.from('stock_movements').insert(data.stockMovements);
-      if (error) throw error;
-    }
-
-    if (data.inventoryDocuments.length > 0) {
-      const { error } = await supabase.from('inventory_documents').insert(data.inventoryDocuments);
-      if (error) throw error;
-    }
-
-    if (data.alerts.length > 0) {
-      const alertsToInsert = data.alerts.map(a => ({
-        ...a,
-        acknowledged: false,
-        acknowledged_at: null,
-        acknowledged_by: null,
-      }));
-      const { error } = await supabase.from('alerts').insert(alertsToInsert);
-      if (error) throw error;
-    }
-
-    if (data.companySettings) {
-      const { error } = await supabase
-        .from('company_settings')
-        .update(data.companySettings)
-        .eq('id', data.companySettings.id);
-      if (error) {
-        await supabase.from('company_settings').insert(data.companySettings);
-      }
-    }
-  };
-
-  const executeWarehouseRestore = async (data: BackupData) => {
-    const warehouseId = data.warehouseId!;
-
-    // Delete data only for this warehouse
-    const deleteMovements = await supabase.from('stock_movements').delete().eq('warehouse_id', warehouseId);
-    if (deleteMovements.error) throw deleteMovements.error;
-
-    const deleteWarehouseStock = await supabase.from('warehouse_stock').delete().eq('warehouse_id', warehouseId);
-    if (deleteWarehouseStock.error) throw deleteWarehouseStock.error;
-
-    const deleteDocuments = await supabase.from('inventory_documents').delete().eq('warehouse', data.warehouseName);
-    if (deleteDocuments.error) throw deleteDocuments.error;
-
-    // Delete alerts for products in this warehouse
-    const productIds = data.products.map(p => p.id);
-    if (productIds.length > 0) {
-      const deleteAlerts = await supabase.from('alerts').delete().in('product_id', productIds);
-      if (deleteAlerts.error) throw deleteAlerts.error;
-    }
-
-    // Insert products that don't exist yet (upsert)
-    if (data.products.length > 0) {
-      for (const product of data.products) {
-        const { error } = await supabase
-          .from('products')
-          .upsert(product, { onConflict: 'id' });
-        if (error) throw error;
-      }
-    }
-
-    // Insert warehouse stock
-    if (data.warehouseStock.length > 0) {
-      const { error } = await supabase.from('warehouse_stock').insert(data.warehouseStock);
-      if (error) throw error;
-    }
-
-    // Insert movements
-    if (data.stockMovements.length > 0) {
-      const { error } = await supabase.from('stock_movements').insert(data.stockMovements);
-      if (error) throw error;
-    }
-
-    // Insert documents
-    if (data.inventoryDocuments.length > 0) {
-      const { error } = await supabase.from('inventory_documents').insert(data.inventoryDocuments);
-      if (error) throw error;
-    }
-
-    // Insert alerts
-    if (data.alerts.length > 0) {
-      const alertsToInsert = data.alerts.map(a => ({
-        ...a,
-        acknowledged: false,
-        acknowledged_at: null,
-        acknowledged_by: null,
-      }));
-      const { error } = await supabase.from('alerts').insert(alertsToInsert);
-      if (error) throw error;
-    }
+  const resetRestoreState = () => {
+    setSelectedFile(null);
+    setBackupPreview(null);
+    setConfirmText('');
   };
 
   return (
@@ -479,11 +141,7 @@ export default function AdminBackup() {
                 </ul>
               </div>
 
-              <Button
-                onClick={createGlobalBackup}
-                disabled={isCreatingBackup}
-                className="w-full"
-              >
+              <Button onClick={createGlobalBackup} disabled={isCreatingBackup} className="w-full">
                 {isCreatingBackup ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -528,12 +186,7 @@ export default function AdminBackup() {
                     </ul>
                   </div>
 
-                  <Button
-                    onClick={createWarehouseBackup}
-                    disabled={isCreatingWarehouseBackup}
-                    variant="secondary"
-                    className="w-full"
-                  >
+                  <Button onClick={handleWarehouseBackup} disabled={isCreatingWarehouseBackup} variant="secondary" className="w-full">
                     {isCreatingWarehouseBackup ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -689,16 +342,8 @@ export default function AdminBackup() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setSelectedFile(null);
-              setBackupPreview(null);
-            }}>
-              Anulează
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={proceedToFinalConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogCancel onClick={resetRestoreState}>Anulează</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedToFinalConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Continuă
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -722,7 +367,7 @@ export default function AdminBackup() {
                       : '⚠️ ATENȚIE: Toate datele curente vor fi șterse definitiv!'}
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Această acțiune nu poate fi anulată. Asigurați-vă că aveți un backup al datelor curente dacă sunt importante.
+                    Această acțiune nu poate fi anulată.
                   </p>
                 </div>
 
@@ -741,18 +386,8 @@ export default function AdminBackup() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setConfirmText('');
-              setSelectedFile(null);
-              setBackupPreview(null);
-            }}>
-              Anulează
-            </AlertDialogCancel>
-            <Button
-              variant="destructive"
-              onClick={executeRestore}
-              disabled={confirmText !== 'RESTAURARE'}
-            >
+            <AlertDialogCancel onClick={resetRestoreState}>Anulează</AlertDialogCancel>
+            <Button variant="destructive" onClick={handleExecuteRestore} disabled={confirmText !== 'RESTAURARE'}>
               Restaurează Datele
             </Button>
           </AlertDialogFooter>
