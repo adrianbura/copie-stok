@@ -225,29 +225,29 @@ export function generateAvizPrintHTML({ document, companySettings }: PrintTempla
           margin-bottom: 10px;
         }
         .company-info {
-          font-size: 13pt;
+          font-size: 14pt;
           line-height: 1.5;
         }
-        .company-name { font-weight: bold; font-size: 16pt; }
+        .company-name { font-weight: bold; font-size: 17pt; }
         .doc-info {
           text-align: right;
-          font-size: 13pt;
+          font-size: 14pt;
         }
         .title {
           text-align: center;
-          font-size: 18pt;
+          font-size: 20pt;
           font-weight: bold;
           margin: 18px 0 12px;
           text-transform: uppercase;
         }
         .subtitle {
           text-align: center;
-          font-size: 12pt;
+          font-size: 13pt;
           margin-bottom: 18px;
         }
         .info-section {
           margin-bottom: 14px;
-          font-size: 13pt;
+          font-size: 14pt;
         }
         .info-row {
           display: flex;
@@ -268,9 +268,9 @@ export function generateAvizPrintHTML({ document, companySettings }: PrintTempla
         th {
           background: #f0f0f0;
           font-weight: bold;
-          font-size: 13pt;
+          font-size: 14pt;
         }
-        td { font-size: 13pt; }
+        td { font-size: 14pt; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .total-row { font-weight: bold; background: #f5f5f5; }
