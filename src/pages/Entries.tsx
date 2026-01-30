@@ -5,6 +5,7 @@ import { StockEntryForm, EntryItem } from '@/components/stock/StockEntryForm';
 import { MovementsHistory } from '@/components/stock/MovementsHistory';
 import { ImportMovementsDialog, ImportedItem } from '@/components/stock/ImportMovementsDialog';
 import { ImportInvoiceDialog, InvoiceMetadata } from '@/components/stock/ImportInvoiceDialog';
+import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { ArrowDownToLine } from 'lucide-react';
 
 interface LocationState {
@@ -12,6 +13,7 @@ interface LocationState {
 }
 
 export default function Entries() {
+  const { selectedWarehouse } = useWarehouseContext();
   const location = useLocation();
   const navigate = useNavigate();
   const locationState = location.state as LocationState | null;
@@ -99,7 +101,7 @@ export default function Entries() {
         />
 
         {/* History */}
-        <MovementsHistory type="entry" />
+        <MovementsHistory type="entry" warehouseId={selectedWarehouse?.id} />
       </div>
     </MainLayout>
   );
