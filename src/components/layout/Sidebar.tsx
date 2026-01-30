@@ -15,6 +15,7 @@ import {
   User,
   Users,
   Warehouse,
+  Database,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -149,6 +150,20 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               >
                 <Warehouse className={cn('h-5 w-5 flex-shrink-0', location.pathname === '/admin/warehouses' && 'animate-scale-in')} />
                 {(!collapsed || onNavigate) && <span className="animate-fade-in">Depozite</span>}
+              </Link>
+              
+              <Link
+                to="/admin/backup"
+                onClick={handleNavClick}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  location.pathname === '/admin/backup'
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                )}
+              >
+                <Database className={cn('h-5 w-5 flex-shrink-0', location.pathname === '/admin/backup' && 'animate-scale-in')} />
+                {(!collapsed || onNavigate) && <span className="animate-fade-in">Backup</span>}
               </Link>
             </div>
           )}
