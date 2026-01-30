@@ -216,61 +216,61 @@ export function generateAvizPrintHTML({ document, companySettings }: PrintTempla
           font-family: 'Times New Roman', serif;
           padding: 12mm;
           color: #000;
-          font-size: 10pt;
-          line-height: 1.3;
+          font-size: 12pt;
+          line-height: 1.4;
         }
         .header-row {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 8px;
+          margin-bottom: 10px;
         }
         .company-info {
-          font-size: 9pt;
-          line-height: 1.4;
+          font-size: 11pt;
+          line-height: 1.5;
         }
-        .company-name { font-weight: bold; font-size: 11pt; }
+        .company-name { font-weight: bold; font-size: 14pt; }
         .doc-info {
           text-align: right;
-          font-size: 9pt;
+          font-size: 11pt;
         }
         .title {
           text-align: center;
-          font-size: 14pt;
+          font-size: 18pt;
           font-weight: bold;
-          margin: 15px 0 10px;
+          margin: 18px 0 12px;
           text-transform: uppercase;
         }
         .subtitle {
           text-align: center;
-          font-size: 10pt;
-          margin-bottom: 15px;
+          font-size: 12pt;
+          margin-bottom: 18px;
         }
         .info-section {
-          margin-bottom: 12px;
-          font-size: 9pt;
+          margin-bottom: 14px;
+          font-size: 11pt;
         }
         .info-row {
           display: flex;
           gap: 20px;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
         }
         .info-label { font-weight: bold; }
         table {
           width: 100%;
           border-collapse: collapse;
-          margin: 10px 0;
+          margin: 12px 0;
         }
         th, td {
           border: 1px solid #000;
-          padding: 6px 8px;
+          padding: 8px 10px;
           text-align: left;
         }
         th {
           background: #f0f0f0;
           font-weight: bold;
-          font-size: 9pt;
+          font-size: 11pt;
         }
-        td { font-size: 9pt; }
+        td { font-size: 11pt; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .total-row { font-weight: bold; background: #f5f5f5; }
@@ -286,20 +286,20 @@ export function generateAvizPrintHTML({ document, companySettings }: PrintTempla
         .footer-row:last-child { border-bottom: none; }
         .footer-left {
           width: 60%;
-          padding: 8px 10px;
+          padding: 10px 12px;
           border-right: 1px solid #000;
-          font-size: 9pt;
-          line-height: 1.6;
+          font-size: 11pt;
+          line-height: 1.7;
         }
         .footer-right {
           width: 40%;
-          padding: 8px 10px;
-          font-size: 9pt;
+          padding: 10px 12px;
+          font-size: 11pt;
         }
         .footer-right-row {
           display: flex;
           justify-content: space-between;
-          padding: 4px 0;
+          padding: 5px 0;
           border-bottom: 1px dotted #ccc;
         }
         .footer-right-row:last-child { border-bottom: none; }
@@ -310,7 +310,7 @@ export function generateAvizPrintHTML({ document, companySettings }: PrintTempla
         .document-footer {
           margin-top: 15px;
           text-align: center;
-          font-size: 7pt;
+          font-size: 9pt;
           color: #666;
         }
         @media print {
