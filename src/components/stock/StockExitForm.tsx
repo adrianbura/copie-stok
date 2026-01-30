@@ -11,7 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useWarehouseProducts } from '@/hooks/useProducts';
-import { useCreateStockMovement } from '@/hooks/useStockMovements';
+import { useCreateBatchStockMovements } from '@/hooks/useStockMovements';
 import { useCreateInventoryDocument, useNextDocumentNumber, DocumentItem } from '@/hooks/useInventoryDocuments';
 import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { Product } from '@/types';
@@ -36,7 +36,7 @@ export interface ExitItem {
 export function StockExitForm({ onSuccess, externalItems, onItemsChange }: StockExitFormProps) {
   const { selectedWarehouse } = useWarehouseContext();
   const { data: products } = useWarehouseProducts(selectedWarehouse?.id);
-  const createMovement = useCreateStockMovement();
+  const createBatchMovements = useCreateBatchStockMovements();
   const createDocument = useCreateInventoryDocument();
   const { data: nextDocNumber } = useNextDocumentNumber('exit', selectedWarehouse?.name);
   
@@ -199,17 +199,18 @@ export function StockExitForm({ onSuccess, externalItems, onItemsChange }: Stock
       });
 
       // Only create stock movements AFTER document is successfully saved
-      for (const docItem of documentItems) {
-        await createMovement.mutateAsync({
-          product_id: docItem.product_id,
-          type: 'exit',
-          quantity: docItem.quantity,
-          reference: documentNumber,
-          notes: `${reason}: ${notes}`.trim(),
-          date: exitDate.toISOString(),
-          warehouse_id: selectedWarehouse?.id,
-        });
-      }
+      // Use batch insert for much faster performance (single DB request instead of N requests)
+      const movementsToCreate = documentItems.map(docItem => ({
+        product_id: docItem.product_id,
+        type: 'exit' as const,
+        quantity: docItem.quantity,
+        reference: documentNumber,
+        notes: `${reason}: ${notes}`.trim(),
+        date: exitDate.toISOString(),
+        warehouse_id: selectedWarehouse?.id,
+      }));
+      
+      await createBatchMovements.mutateAsync(movementsToCreate);
 
       toast.success(`${exitItems.length} ieșiri înregistrate cu succes!`);
       
