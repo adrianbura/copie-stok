@@ -1,14 +1,9 @@
-export interface Warehouse {
-  id: string;
-  code: string;
-  name: string;
-  address: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+// Re-export from useWarehouse hook for backward compatibility
+// This avoids duplicate type definitions
+export type { Warehouse, WarehouseStock } from '@/hooks/useWarehouse';
 
-export interface WarehouseStock {
+// Extended type for warehouse stock with product details
+export interface WarehouseStockWithProduct {
   id: string;
   warehouse_id: string;
   product_id: string;
@@ -17,9 +12,6 @@ export interface WarehouseStock {
   location: string | null;
   created_at: string;
   updated_at: string;
-}
-
-export interface WarehouseStockWithProduct extends WarehouseStock {
   product: {
     id: string;
     code: string;
