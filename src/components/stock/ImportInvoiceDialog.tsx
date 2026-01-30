@@ -173,6 +173,9 @@ export function ImportInvoiceDialog({ onImportToList, externalOpen, onExternalOp
             product: existingProduct,
             quantity: item.quantity,
             isNew: false,
+            // Store original scanned values for revert functionality
+            originalCode: existingProduct.code,
+            originalName: existingProduct.name,
           });
           matched++;
         } else {
@@ -186,6 +189,9 @@ export function ImportInvoiceDialog({ onImportToList, externalOpen, onExternalOp
             category: (item.category as PyroCategory) || 'F2',
             unitPrice: item.unitPrice,
             supplier: invoice.supplier,
+            // Store original scanned values for revert functionality
+            originalCode: item.code,
+            originalName: item.name,
           });
           newProducts++;
         }
@@ -309,19 +315,26 @@ export function ImportInvoiceDialog({ onImportToList, externalOpen, onExternalOp
             product: existingProduct,
             quantity: row.quantity,
             isNew: false,
+            // Store original values for revert functionality
+            originalCode: existingProduct.code,
+            originalName: existingProduct.name,
           });
           matched++;
         } else {
+          const productName = row.productName || row.productCode;
           itemsToAdd.push({
             id: crypto.randomUUID(),
             product: null,
             quantity: row.quantity,
             isNew: true,
             newProductCode: row.productCode,
-            newProductName: row.productName || row.productCode,
+            newProductName: productName,
             category: (row.category || 'F2') as PyroCategory,
             unitPrice: row.unitPrice || 0,
             supplier: row.supplier,
+            // Store original values for revert functionality
+            originalCode: row.productCode,
+            originalName: productName,
           });
           newProducts++;
         }

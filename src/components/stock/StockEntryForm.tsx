@@ -15,7 +15,8 @@ import { useCreateStockMovement } from '@/hooks/useStockMovements';
 import { useCreateInventoryDocument, useNextDocumentNumber, DocumentItem } from '@/hooks/useInventoryDocuments';
 import { useWarehouseContext } from '@/hooks/useWarehouse';
 import { Product, PyroCategory, CATEGORIES } from '@/types';
-import { ArrowDownToLine, Save, X, CalendarIcon, Plus, Loader2, Package, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowDownToLine, Save, X, CalendarIcon, Plus, Loader2, Package, Trash2, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ProductSearchSelect } from './ProductSearchSelect';
@@ -41,6 +42,9 @@ export interface EntryItem {
   category?: PyroCategory;
   unitPrice?: number;
   supplier?: string;
+  // Track original scanned values for revert functionality
+  originalCode?: string;
+  originalName?: string;
 }
 
 export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoiceMetadata, onMetadataUsed }: StockEntryFormProps) {
@@ -199,12 +203,101 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
     }));
   };
 
+  // Update item code
+  const handleUpdateCode = (itemId: string, newCode: string) => {
+    setEntryItems(entryItems.map((item) => {
+      if (item.id === itemId) {
+        if (item.isNew) {
+          return { ...item, newProductCode: newCode };
+        } else if (item.product) {
+          return { ...item, product: { ...item.product, code: newCode } };
+        }
+      }
+      return item;
+    }));
+  };
+
+  // Update item name
+  const handleUpdateName = (itemId: string, newName: string) => {
+    setEntryItems(entryItems.map((item) => {
+      if (item.id === itemId) {
+        if (item.isNew) {
+          return { ...item, newProductName: newName };
+        } else if (item.product) {
+          return { ...item, product: { ...item.product, name: newName } };
+        }
+      }
+      return item;
+    }));
+  };
+
+  // Revert item to original scanned values
+  const handleRevertItem = (itemId: string) => {
+    setEntryItems(entryItems.map((item) => {
+      if (item.id === itemId && item.originalCode && item.originalName) {
+        if (item.isNew) {
+          return { ...item, newProductCode: item.originalCode, newProductName: item.originalName };
+        } else if (item.product) {
+          return { ...item, product: { ...item.product, code: item.originalCode, name: item.originalName } };
+        }
+      }
+      return item;
+    }));
+  };
+
+  // Check if item has been modified from original
+  const isItemModified = (item: EntryItem): boolean => {
+    if (!item.originalCode || !item.originalName) return false;
+    const currentCode = item.isNew ? item.newProductCode : item.product?.code;
+    const currentName = item.isNew ? item.newProductName : item.product?.name;
+    return currentCode !== item.originalCode || currentName !== item.originalName;
+  };
+
+  // Validate all items before save
+  const validateItems = (): { valid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    const codes = new Set<string>();
+    
+    for (const item of entryItems) {
+      const code = item.isNew ? item.newProductCode : item.product?.code;
+      const name = item.isNew ? item.newProductName : item.product?.name;
+      
+      if (!code?.trim()) {
+        errors.push(`Codul produsului nu poate fi gol pentru "${name || 'produs necunoscut'}"`);
+      }
+      if (!name?.trim()) {
+        errors.push(`Denumirea nu poate fi goală pentru codul "${code || 'cod necunoscut'}"`);
+      }
+      if (item.quantity <= 0) {
+        errors.push(`Cantitatea trebuie să fie pozitivă pentru "${name || code}"`);
+      }
+      
+      // Check for duplicate codes in the list
+      if (code) {
+        const lowerCode = code.toLowerCase();
+        if (codes.has(lowerCode)) {
+          errors.push(`Cod duplicat în listă: "${code}"`);
+        }
+        codes.add(lowerCode);
+      }
+    }
+    
+    return { valid: errors.length === 0, errors };
+  };
+
   // Save all entries
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (entryItems.length === 0) {
       toast.error('Adaugă cel puțin un produs în listă');
+      return;
+    }
+
+    // Validate items
+    const validation = validateItems();
+    if (!validation.valid) {
+      validation.errors.forEach(err => toast.error(err));
       return;
     }
 
@@ -538,61 +631,114 @@ export function StockEntryForm({ onSuccess, externalItems, onItemsChange, invoic
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <TooltipProvider>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cod</TableHead>
+                    <TableHead className="w-[160px]">Cod</TableHead>
                     <TableHead>Denumire</TableHead>
-                    <TableHead>Categorie</TableHead>
-                    <TableHead className="text-right">Cantitate</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[100px]">Categorie</TableHead>
+                    <TableHead className="text-right w-[100px]">Cantitate</TableHead>
+                    <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {entryItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-mono text-sm">
-                        {item.isNew ? (
-                          <span className="text-success">{item.newProductCode} (nou)</span>
-                        ) : (
-                          item.product?.code
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {item.isNew ? item.newProductName : item.product?.name}
-                      </TableCell>
-                      <TableCell>
-                        <CategorySelector 
-                          category={item.isNew ? item.category! : item.product?.category!} 
-                          onCategoryChange={(newCat) => handleUpdateCategory(item.id, newCat)}
-                          size="sm" 
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Input
-                          type="number"
-                          min={1}
-                          value={item.quantity}
-                          onChange={(e) => handleUpdateQuantity(item.id, parseInt(e.target.value) || 1)}
-                          className="w-20 h-8 text-right ml-auto"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {entryItems.map((item) => {
+                    const currentCode = item.isNew ? item.newProductCode : item.product?.code;
+                    const currentName = item.isNew ? item.newProductName : item.product?.name;
+                    const isModified = isItemModified(item);
+                    const codeModified = item.originalCode && currentCode !== item.originalCode;
+                    const nameModified = item.originalName && currentName !== item.originalName;
+                    
+                    return (
+                      <TableRow key={item.id} className={cn(isModified && "bg-warning/5")}>
+                        <TableCell className="p-2">
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={currentCode || ''}
+                              onChange={(e) => handleUpdateCode(item.id, e.target.value)}
+                              placeholder="Cod produs"
+                              className={cn(
+                                "h-8 font-mono text-sm",
+                                codeModified && "border-warning bg-warning/10",
+                                !currentCode?.trim() && "border-destructive"
+                              )}
+                            />
+                            {item.isNew && (
+                              <span className="text-xs text-success font-medium whitespace-nowrap">(nou)</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-2">
+                          <Input
+                            value={currentName || ''}
+                            onChange={(e) => handleUpdateName(item.id, e.target.value)}
+                            placeholder="Denumire produs"
+                            className={cn(
+                              "h-8",
+                              nameModified && "border-warning bg-warning/10",
+                              !currentName?.trim() && "border-destructive"
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell className="p-2">
+                          <CategorySelector 
+                            category={item.isNew ? item.category! : item.product?.category!} 
+                            onCategoryChange={(newCat) => handleUpdateCategory(item.id, newCat)}
+                            size="sm" 
+                          />
+                        </TableCell>
+                        <TableCell className="text-right p-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateQuantity(item.id, parseInt(e.target.value) || 1)}
+                            className={cn(
+                              "w-20 h-8 text-right ml-auto",
+                              item.quantity <= 0 && "border-destructive"
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell className="p-2">
+                          <div className="flex items-center gap-1">
+                            {isModified && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleRevertItem(item.id)}
+                                    className="h-8 w-8 text-warning hover:text-warning"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="left">
+                                  <p className="text-xs">Revino la valoarea scanată</p>
+                                  <p className="text-xs text-muted-foreground">Cod: {item.originalCode}</p>
+                                  <p className="text-xs text-muted-foreground">Denumire: {item.originalName}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
       )}
