@@ -49,7 +49,18 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
     setIsResetting(true);
     
     try {
-      // Delete warehouse-specific data only
+      // IMPORTANT: Get product IDs FIRST, before deleting warehouse_stock
+      let productIdsToDelete: string[] = [];
+      if (options.deleteProducts || options.alerts) {
+        const { data: warehouseStock } = await supabase
+          .from('warehouse_stock')
+          .select('product_id')
+          .eq('warehouse_id', selectedWarehouse.id);
+        
+        productIdsToDelete = warehouseStock?.map(ws => ws.product_id) || [];
+      }
+
+      // Delete warehouse-specific data
       if (options.movements) {
         const { error: movementsError } = await supabase
           .from('stock_movements')
@@ -59,23 +70,13 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
         if (movementsError) throw movementsError;
       }
 
-      if (options.alerts) {
-        // Get product IDs from warehouse stock
-        const { data: warehouseStock } = await supabase
-          .from('warehouse_stock')
-          .select('product_id')
-          .eq('warehouse_id', selectedWarehouse.id);
+      if (options.alerts && productIdsToDelete.length > 0) {
+        const { error: alertsError } = await supabase
+          .from('alerts')
+          .delete()
+          .in('product_id', productIdsToDelete);
         
-        const productIds = warehouseStock?.map(ws => ws.product_id) || [];
-        
-        if (productIds.length > 0) {
-          const { error: alertsError } = await supabase
-            .from('alerts')
-            .delete()
-            .in('product_id', productIds);
-          
-          if (alertsError) throw alertsError;
-        }
+        if (alertsError) throw alertsError;
       }
 
       if (options.documents) {
@@ -108,25 +109,14 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
         }
       }
 
-      if (options.deleteProducts) {
+      if (options.deleteProducts && productIdsToDelete.length > 0) {
         // Delete products from the global catalog
-        // First get all product IDs that have stock in this warehouse
-        const { data: warehouseStock } = await supabase
-          .from('warehouse_stock')
-          .select('product_id')
-          .eq('warehouse_id', selectedWarehouse.id);
+        const { error: productsError } = await supabase
+          .from('products')
+          .delete()
+          .in('id', productIdsToDelete);
         
-        const productIds = warehouseStock?.map(ws => ws.product_id) || [];
-        
-        if (productIds.length > 0) {
-          // Delete these products from the catalog
-          const { error: productsError } = await supabase
-            .from('products')
-            .delete()
-            .in('id', productIds);
-          
-          if (productsError) throw productsError;
-        }
+        if (productsError) throw productsError;
       }
 
       toast.success(`Datele din ${selectedWarehouse.name} au fost șterse cu succes`);
