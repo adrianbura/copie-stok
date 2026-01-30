@@ -38,6 +38,7 @@ const WarehouseContext = createContext<WarehouseContextType | undefined>(undefin
 
 export function WarehouseProvider({ children }: { children: ReactNode }) {
   const [selectedWarehouse, setSelectedWarehouseState] = useState<Warehouse | null>(null);
+  const [hasValidatedAccess, setHasValidatedAccess] = useState(false);
   const { data: warehouses = [], isLoading } = useWarehouses();
 
   // Load selected warehouse from localStorage on mount
@@ -54,25 +55,57 @@ export function WarehouseProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Validate stored warehouse exists when warehouses load
-  // Only clear if we have loaded warehouses AND the warehouse was deleted (not just not in cache yet)
+  // Validate stored warehouse exists AND user has access to it
   useEffect(() => {
-    if (warehouses.length > 0 && selectedWarehouse) {
-      const exists = warehouses.find(w => w.id === selectedWarehouse.id);
-      if (exists) {
-        // Update stored data if warehouse was renamed
-        if (exists.name !== selectedWarehouse.name || exists.code !== selectedWarehouse.code) {
-          setSelectedWarehouseState(exists);
-          localStorage.setItem(WAREHOUSE_STORAGE_KEY, JSON.stringify(exists));
+    const validateWarehouseAccess = async () => {
+      if (!selectedWarehouse || hasValidatedAccess) return;
+      
+      // Check if warehouse exists in the system
+      if (warehouses.length > 0) {
+        const exists = warehouses.find(w => w.id === selectedWarehouse.id);
+        if (exists) {
+          // Update stored data if warehouse was renamed
+          if (exists.name !== selectedWarehouse.name || exists.code !== selectedWarehouse.code) {
+            setSelectedWarehouseState(exists);
+            localStorage.setItem(WAREHOUSE_STORAGE_KEY, JSON.stringify(exists));
+          }
         }
+        
+        // Validate user has access to this warehouse
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Check if admin (admins have access to all warehouses)
+          const { data: isAdminData } = await supabase
+            .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+          
+          if (!isAdminData) {
+            // Not admin - check if user has access to this warehouse
+            const { data: userWarehouses } = await supabase
+              .from('user_warehouses')
+              .select('warehouse_id')
+              .eq('user_id', user.id);
+            
+            const allowedIds = userWarehouses?.map(uw => uw.warehouse_id) || [];
+            
+            if (!allowedIds.includes(selectedWarehouse.id)) {
+              // User doesn't have access to this warehouse - clear selection
+              console.log('User does not have access to selected warehouse, clearing selection');
+              setSelectedWarehouseState(null);
+              localStorage.removeItem(WAREHOUSE_STORAGE_KEY);
+            }
+          }
+        }
+        
+        setHasValidatedAccess(true);
       }
-      // Note: We don't clear selection if warehouse isn't found - it might just be a new one
-      // that hasn't been refetched yet. The warehouse will be validated on actual use.
-    }
-  }, [warehouses, selectedWarehouse]);
+    };
+    
+    validateWarehouseAccess();
+  }, [warehouses, selectedWarehouse, hasValidatedAccess]);
 
   const setSelectedWarehouse = (warehouse: Warehouse | null) => {
     setSelectedWarehouseState(warehouse);
+    setHasValidatedAccess(true); // Mark as validated since user explicitly selected
     if (warehouse) {
       localStorage.setItem(WAREHOUSE_STORAGE_KEY, JSON.stringify(warehouse));
     } else {
@@ -82,6 +115,7 @@ export function WarehouseProvider({ children }: { children: ReactNode }) {
 
   const clearSelection = () => {
     setSelectedWarehouseState(null);
+    setHasValidatedAccess(false);
     localStorage.removeItem(WAREHOUSE_STORAGE_KEY);
   };
 
