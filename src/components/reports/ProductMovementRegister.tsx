@@ -181,7 +181,7 @@ export function ProductMovementRegister() {
             table { 
               width: 100%; 
               border-collapse: collapse; 
-              font-size: 13pt;
+              font-size: 14pt;
               margin-bottom: 10px;
             }
             th, td { 
