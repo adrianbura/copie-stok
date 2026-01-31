@@ -10,6 +10,7 @@ import { useWarehouses, useCreateWarehouse, useUpdateWarehouse, Warehouse as War
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { WarehouseDialog } from '@/components/admin/WarehouseDialog';
+import { AllWarehousesStockDialog } from '@/components/admin/AllWarehousesStockDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
@@ -96,10 +97,13 @@ export default function AdminWarehouses() {
               Gestionează depozitele și locațiile de stocare
             </p>
           </div>
-          <Button onClick={handleCreate} className="gradient-fire">
-            <Plus className="h-4 w-4 mr-2" />
-            Depozit Nou
-          </Button>
+          <div className="flex gap-2">
+            <AllWarehousesStockDialog />
+            <Button onClick={handleCreate} className="gradient-fire">
+              <Plus className="h-4 w-4 mr-2" />
+              Depozit Nou
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
