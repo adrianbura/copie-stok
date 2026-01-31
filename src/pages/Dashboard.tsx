@@ -33,10 +33,11 @@ export default function Dashboard() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           <StockOverview />
-          <RecentMovements />
+          <div className="space-y-6">
+            <QuickActions />
+            <RecentMovements />
+          </div>
         </div>
-
-        <QuickActions />
       </div>
     </MainLayout>
   );
