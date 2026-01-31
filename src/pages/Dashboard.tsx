@@ -31,11 +31,12 @@ export default function Dashboard() {
           <StatCard title="Alerte Active" value={unacknowledgedCount} subtitle="Necesită atenție" icon={FileCheck} variant={unacknowledgedCount > 0 ? 'danger' : 'default'} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2">
           <StockOverview />
           <RecentMovements />
-          <QuickActions />
         </div>
+
+        <QuickActions />
       </div>
     </MainLayout>
   );
