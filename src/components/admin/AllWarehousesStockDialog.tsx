@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Warehouse, FileText, FileSpreadsheet, Search, Loader2, Package } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Warehouse, FileText, FileSpreadsheet, Search, Loader2, Package, ChevronDown, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -19,13 +21,37 @@ interface ProductWithWarehouse {
   code: string;
   name: string;
   quantity: number;
+  warehouseId: string;
   warehouseName: string;
   warehouseCode: string;
+}
+
+interface WarehouseOption {
+  id: string;
+  name: string;
+  code: string;
 }
 
 export function AllWarehousesStockDialog() {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedWarehouseIds, setSelectedWarehouseIds] = useState<string[]>([]);
+
+  // Fetch all warehouses for the selector
+  const { data: warehouses = [] } = useQuery({
+    queryKey: ['warehouses-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('warehouses')
+        .select('id, name, code')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) throw error;
+      return data as WarehouseOption[];
+    },
+    enabled: open,
+  });
 
   // Fetch all products with their warehouse info
   const { data: allProducts = [], isLoading } = useQuery({
@@ -54,6 +80,7 @@ export function AllWarehousesStockDialog() {
         code: p.code,
         name: p.name,
         quantity: p.quantity,
+        warehouseId: p.warehouse_id || '',
         warehouseName: p.warehouses?.name || 'Necunoscut',
         warehouseCode: p.warehouses?.code || '-',
       })) as ProductWithWarehouse[];
@@ -61,12 +88,42 @@ export function AllWarehousesStockDialog() {
     enabled: open,
   });
 
-  // Filter products based on search
-  const filteredProducts = allProducts.filter(p =>
-    p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.warehouseName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter products based on search and selected warehouses
+  const filteredProducts = useMemo(() => {
+    return allProducts.filter(p => {
+      // Filter by selected warehouses (if any selected)
+      if (selectedWarehouseIds.length > 0 && !selectedWarehouseIds.includes(p.warehouseId)) {
+        return false;
+      }
+      // Filter by search term
+      return (
+        p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.warehouseName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+  }, [allProducts, selectedWarehouseIds, searchTerm]);
+
+  const toggleWarehouse = (warehouseId: string) => {
+    setSelectedWarehouseIds(prev =>
+      prev.includes(warehouseId)
+        ? prev.filter(id => id !== warehouseId)
+        : [...prev, warehouseId]
+    );
+  };
+
+  const clearWarehouseFilter = () => {
+    setSelectedWarehouseIds([]);
+  };
+
+  const getWarehouseFilterLabel = () => {
+    if (selectedWarehouseIds.length === 0) return 'Toate depozitele';
+    if (selectedWarehouseIds.length === 1) {
+      const w = warehouses.find(w => w.id === selectedWarehouseIds[0]);
+      return w?.name || 'Depozit selectat';
+    }
+    return `${selectedWarehouseIds.length} depozite selectate`;
+  };
 
   // Export to PDF
   const handleExportPDF = () => {
@@ -172,6 +229,52 @@ export function AllWarehousesStockDialog() {
         <div className="flex flex-col gap-4 flex-1 min-h-0">
           {/* Toolbar */}
           <div className="flex items-center gap-3 flex-wrap">
+            {/* Warehouse Selector */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2 min-w-[180px] justify-between">
+                  <div className="flex items-center gap-2">
+                    <Warehouse className="h-4 w-4" />
+                    <span className="truncate">{getWarehouseFilterLabel()}</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2" align="start">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b">
+                    <span className="text-sm font-medium">Selecteaza depozite</span>
+                    {selectedWarehouseIds.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearWarehouseFilter}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Sterge
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                    {warehouses.map((warehouse) => (
+                      <label
+                        key={warehouse.id}
+                        className="flex items-center gap-2 p-2 rounded-md hover:bg-muted cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={selectedWarehouseIds.includes(warehouse.id)}
+                          onCheckedChange={() => toggleWarehouse(warehouse.id)}
+                        />
+                        <span className="text-sm flex-1">{warehouse.name}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{warehouse.code}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
