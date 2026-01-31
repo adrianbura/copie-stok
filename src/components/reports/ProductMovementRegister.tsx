@@ -175,7 +175,7 @@ export function ProductMovementRegister() {
             .product-info { 
               display: flex; 
               gap: 30px; 
-              font-size: 10pt;
+              font-size: 12pt;
               margin-top: 5px;
             }
             table { 
