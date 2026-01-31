@@ -12,46 +12,46 @@ import {
 
 export function QuickActions() {
   return (
-    <Card className="col-span-full lg:col-span-1">
-      <CardHeader>
-        <CardTitle>Acțiuni Rapide</CardTitle>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">Acțiuni Rapide</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-3">
-          <Button asChild variant="outline" className="h-auto flex-col gap-2 py-4">
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline" className="h-auto flex-row gap-2 px-4 py-3">
             <Link to="/entries">
-              <ArrowDownToLine className="h-5 w-5 text-success" />
-              <span className="text-xs">Intrare Nouă</span>
+              <ArrowDownToLine className="h-4 w-4 text-success" />
+              <span className="text-sm">Intrare Nouă</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" className="h-auto flex-col gap-2 py-4">
+          <Button asChild variant="outline" className="h-auto flex-row gap-2 px-4 py-3">
             <Link to="/exits">
-              <ArrowUpFromLine className="h-5 w-5 text-destructive" />
-              <span className="text-xs">Ieșire Nouă</span>
+              <ArrowUpFromLine className="h-4 w-4 text-destructive" />
+              <span className="text-sm">Ieșire Nouă</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" className="h-auto flex-col gap-2 py-4">
+          <Button asChild variant="outline" className="h-auto flex-row gap-2 px-4 py-3">
             <Link to="/products">
-              <Package className="h-5 w-5 text-primary" />
-              <span className="text-xs">Produs Nou</span>
+              <Package className="h-4 w-4 text-primary" />
+              <span className="text-sm">Produs Nou</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" className="h-auto flex-col gap-2 py-4">
+          <Button asChild variant="outline" className="h-auto flex-row gap-2 px-4 py-3">
             <Link to="/reports">
-              <FileSpreadsheet className="h-5 w-5 text-accent" />
-              <span className="text-xs">Rapoarte</span>
+              <FileSpreadsheet className="h-4 w-4 text-accent" />
+              <span className="text-sm">Rapoarte</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" className="h-auto flex-col gap-2 py-4 col-span-1">
+          <Button asChild variant="outline" className="h-auto flex-row gap-2 px-4 py-3">
             <Link to="/entries" state={{ openDialog: 'importFile' }}>
-              <Upload className="h-5 w-5 text-muted-foreground" />
-              <span className="text-xs">Import Excel</span>
+              <Upload className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">Import Excel</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" className="h-auto flex-col gap-2 py-4 col-span-1">
+          <Button asChild variant="outline" className="h-auto flex-row gap-2 px-4 py-3">
             <Link to="/entries" state={{ openDialog: 'importInvoice' }}>
-              <Download className="h-5 w-5 text-muted-foreground" />
-              <span className="text-xs">Import Factură</span>
+              <Download className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">Import Factură</span>
             </Link>
           </Button>
         </div>
