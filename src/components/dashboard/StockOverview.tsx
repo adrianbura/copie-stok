@@ -19,7 +19,7 @@ export function StockOverview() {
   const totalStock = Object.values(stockByCategory).reduce((a, b) => a + b, 0);
 
   return (
-    <Card className="col-span-full lg:col-span-2">
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <span>Distribuție Stoc pe Categorii</span>

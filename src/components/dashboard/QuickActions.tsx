@@ -12,7 +12,7 @@ import {
 
 export function QuickActions() {
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Acțiuni Rapide</CardTitle>
       </CardHeader>
