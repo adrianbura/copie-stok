@@ -2,7 +2,6 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/ui/stat-card';
 import { StockOverview } from '@/components/dashboard/StockOverview';
 import { RecentMovements } from '@/components/dashboard/RecentMovements';
-import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { useWarehouseProductStats } from '@/hooks/useProducts';
 import { useAlertStats } from '@/hooks/useAlerts';
@@ -32,9 +31,8 @@ export default function Dashboard() {
           <StatCard title="Alerte Active" value={unacknowledgedCount} subtitle="Necesită atenție" icon={FileCheck} variant={unacknowledgedCount > 0 ? 'danger' : 'default'} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-4">
+        <div className="grid gap-6 lg:grid-cols-3">
           <StockOverview />
-          <AlertsPanel />
           <RecentMovements />
           <QuickActions />
         </div>
